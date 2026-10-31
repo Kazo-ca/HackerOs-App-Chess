@@ -36,7 +36,8 @@ public static class GameSnapshotJson
             OutcomeOf(dto),
             (dto.Moves ?? []).Select(ToLegalMove).ToArray(),
             (dto.History ?? []).Select(ToPlayedMove).ToArray(),
-            dto.StartFen);
+            dto.StartFen,
+            dto.Result is "1-0" or "0-1" or "1/2-1/2" ? dto.Result : "*");
     }
 
     // chess.js reports each rule on its own; checkmate and stalemate win over the draw rules
@@ -77,6 +78,8 @@ public static class GameSnapshotJson
     internal sealed class SnapshotDto
     {
         public string? StartFen { get; set; }
+
+        public string? Result { get; set; }
 
         public string? Fen { get; set; }
 

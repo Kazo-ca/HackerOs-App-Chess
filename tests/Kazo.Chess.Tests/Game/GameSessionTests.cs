@@ -2,6 +2,7 @@ using Kazo.Chess.Clock;
 using Kazo.Chess.Engine;
 using Kazo.Chess.Game;
 using Kazo.Chess.Model;
+using Kazo.Chess.Pgn;
 using Kazo.Chess.Rules;
 
 namespace Kazo.Chess.Tests.Game;
@@ -470,6 +471,84 @@ public sealed class GameSessionTests
     }
 
     [Fact]
+    public async Task LoadAsync_OpensASavedGameBetweenTwoPlayersWithoutClock()
+    {
+        var rules = new FakeRules();
+        await using var session = new GameSession(rules, () => new FakeEngine(), new ManualTime());
+        await session.StartAsync(Computer(PieceColor.White) with { Clock = TimeControl.Of(5, 0) });
+
+        await session.LoadAsync("e2e4 e7e5 g1f3");
+
+        Assert.Equal(GameMode.TwoPlayers, session.Setup.Mode);
+        Assert.Null(session.Clock);
+        Assert.Equal(3, session.Snapshot!.History.Count);
+        Assert.Equal(PieceColor.Black, session.Mover);
+        Assert.Null(session.RecordedResult);
+    }
+
+    [Fact]
+    public async Task LoadAsync_AnUnreadableGame_KeepsTheCurrentOne()
+    {
+        var rules = new FakeRules();
+        await using var session = new GameSession(rules, () => new FakeEngine());
+        await session.StartAsync(GameSetup.TwoPlayers);
+        await session.PlayAsync(Move("e2e4"));
+        GameSnapshot before = session.Snapshot!;
+
+        await Assert.ThrowsAsync<FormatException>(() => session.LoadAsync("bad"));
+
+        Assert.Same(before, session.Snapshot);
+        Assert.Equal(PieceColor.Black, session.Mover);
+        Assert.False(session.IsBusy);
+    }
+
+    [Fact]
+    public async Task AGameSavedAsResigned_IsOverUntilAMoveIsTakenBack()
+    {
+        var rules = new FakeRules { Recorded = "1-0" };
+        await using var session = new GameSession(rules, () => new FakeEngine());
+        await session.StartAsync(GameSetup.TwoPlayers);
+
+        await session.LoadAsync("e2e4 e7e5");
+
+        Assert.Equal("1-0", session.RecordedResult);
+        Assert.True(session.IsOver);
+        Assert.Null(session.Mover);
+        Assert.Equal(new GameStatus("StatusRecorded", null, "1-0"), GameStatus.Of(session.Snapshot!, null, session.RecordedResult));
+
+        Assert.True(await session.UndoAsync());
+        Assert.Null(session.RecordedResult);
+        Assert.Equal(PieceColor.Black, session.Mover);
+    }
+
+    [Fact]
+    public async Task ExportPgnAsync_NamesThePlayersAndTheResult()
+    {
+        var rules = new FakeRules();
+        await using var session = new GameSession(rules, () => new FakeEngine { Replies = { Move("e7e5") } });
+        await session.StartAsync(Computer(PieceColor.White) with { Level = EngineLevel.Hard });
+        await session.PlayAsync(Move("e2e4"));
+
+        string pgn = await session.ExportPgnAsync(new DateOnly(2026, 10, 31), "neo");
+
+        Assert.Equal("[Result \"*\"]", pgn);
+        Assert.Equal(new PgnTags("Casual game", "HackerOS", "2026.10.31", "neo", "Stockfish 19 lite (Skill 15)", "*"), rules.Exported);
+    }
+
+    [Fact]
+    public async Task ExportPgnAsync_BetweenTwoPlayers_LeavesTheNamesUnknown()
+    {
+        var rules = new FakeRules();
+        await using var session = new GameSession(rules, () => new FakeEngine());
+        await session.StartAsync(GameSetup.TwoPlayers);
+
+        await session.ExportPgnAsync(new DateOnly(2026, 10, 31), "neo");
+
+        Assert.Equal("?", rules.Exported!.White);
+        Assert.Equal("?", rules.Exported.Black);
+    }
+
+    [Fact]
     public async Task ANewGame_ComesWithAFreshClock()
     {
         var time = new ManualTime();
@@ -561,6 +640,30 @@ public sealed class GameSessionTests
         }
 
         public List<int> Undone { get; } = [];
+
+        public string? Recorded { get; set; }
+
+        public PgnTags? Exported { get; private set; }
+
+        public Task<GameSnapshot> LoadPgnAsync(string pgn, CancellationToken cancellationToken = default)
+        {
+            if (pgn == "bad")
+            {
+                throw new FormatException("Invalid move in PGN: e5");
+            }
+
+            Played.Clear();
+            Played.AddRange(pgn.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+            GameSnapshot played = With(Played.Count % 2 == 0 ? PieceColor.White : PieceColor.Black);
+            _current = new GameSnapshot(played.Fen, played.Turn, false, GameOutcome.Ongoing, played.LegalMoves, played.History, null, Recorded ?? "*");
+            return Task.FromResult(_current);
+        }
+
+        public Task<string> ExportPgnAsync(PgnTags tags, CancellationToken cancellationToken = default)
+        {
+            Exported = tags;
+            return Task.FromResult($"[Result \"{tags.Result}\"]");
+        }
 
         public Task<GameSnapshot> UndoAsync(int plies, CancellationToken cancellationToken = default)
         {

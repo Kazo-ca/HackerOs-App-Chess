@@ -207,4 +207,37 @@
   <data name="LoadingEngine" xml:space="preserve">
     <value>Starting the chess engine…</value>
   </data>
+  <data name="Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="OpenTitle" xml:space="preserve">
+    <value>Open a game</value>
+  </data>
+  <data name="SaveTitle" xml:space="preserve">
+    <value>Save the game</value>
+  </data>
+  <data name="FilterPgn" xml:space="preserve">
+    <value>Chess games (PGN)</value>
+  </data>
+  <data name="FilterAll" xml:space="preserve">
+    <value>All files</value>
+  </data>
+  <data name="ConfirmOpen" xml:space="preserve">
+    <value>Abandon the current game and open another one?</value>
+  </data>
+  <data name="PgnInvalid" xml:space="preserve">
+    <value>{0} is not a game Chess can read: {1}</value>
+  </data>
+  <data name="FileFailed" xml:space="preserve">
+    <value>{0} could not be used: {1}</value>
+  </data>
+  <data name="Saved" xml:space="preserve">
+    <value>Saved as {0}.</value>
+  </data>
+  <data name="StatusRecorded" xml:space="preserve">
+    <value>Game over: {0} (as saved)</value>
+  </data>
 </root>

@@ -9,6 +9,14 @@
         <span class="chess-brand" aria-hidden="true">♞</span>
         <span class="chess-title">@L["AppTitle"]</span>
         <span class="toolbar-spacer"></span>
+        <button type="button" class="toolbar-button icon" title="@L["Open"]" aria-label="@L["Open"]"
+                disabled="@(Snapshot is null || _dialogOpen)" @onclick="OpenPgnAsync">
+            <span aria-hidden="true">⇪</span><span class="label">@L["Open"]</span>
+        </button>
+        <button type="button" class="toolbar-button icon" title="@L["Save"]" aria-label="@L["Save"]"
+                disabled="@(Snapshot is null || _dialogOpen)" @onclick="SavePgnAsync">
+            <span aria-hidden="true">⤓</span><span class="label">@L["Save"]</span>
+        </button>
         <button type="button" class="toolbar-button icon" title="@L["Undo"]" aria-label="@L["Undo"]"
                 disabled="@(!_session.CanUndo || _dialogOpen)" @onclick="UndoAsync">
             <span aria-hidden="true">↶</span><span class="label">@L["Undo"]</span>
@@ -41,7 +49,7 @@
         <aside class="side-panel">
             @if (Snapshot is not null)
             {
-                GameStatus status = GameStatus.Of(Snapshot, _session.TimedOut);
+                GameStatus status = GameStatus.Of(Snapshot, _session.TimedOut, _session.RecordedResult);
                 @PlayerCard(Orientation.Opponent())
                 <div class="status-card @(_session.IsOver ? "over" : string.Empty)" role="status" aria-live="polite">
                     @if (status.Side is { } side)
@@ -61,6 +69,10 @@
                 @if (_error is not null)
                 {
                     <p class="error-note" role="alert">@_error</p>
+                }
+                else if (_notice is not null)
+                {
+                    <p class="notice" role="status">@_notice</p>
                 }
                 <MoveList History="Snapshot.History" Label="@L["MovesLabel"]" EmptyText="@L["NoMoves"]" />
                 @PlayerCard(Orientation)

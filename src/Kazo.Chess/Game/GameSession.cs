@@ -2,6 +2,7 @@ using System.Runtime.ExceptionServices;
 using Kazo.Chess.Clock;
 using Kazo.Chess.Engine;
 using Kazo.Chess.Model;
+using Kazo.Chess.Pgn;
 using Kazo.Chess.Rules;
 using Microsoft.JSInterop;
 
@@ -65,11 +66,17 @@ public sealed class GameSession : IAsyncDisposable
     /// <summary>Gets the side whose time ran out, or <see langword="null"/>.</summary>
     public PieceColor? TimedOut { get; private set; }
 
-    /// <summary>Gets whether the game is over, on the board or on the clock.</summary>
-    public bool IsOver => Snapshot?.IsOver == true || TimedOut is not null;
+    /// <summary>
+    /// Gets the result a loaded game was saved with when it ended off the board (a resignation, a
+    /// draw agreed, time): the game is over until a move is taken back. <see langword="null"/> otherwise.
+    /// </summary>
+    public string? RecordedResult { get; private set; }
+
+    /// <summary>Gets whether the game is over, on the board, on the clock or by its recorded result.</summary>
+    public bool IsOver => Snapshot?.IsOver == true || TimedOut is not null || RecordedResult is not null;
 
     /// <summary>Gets the side the person at the screen may move now, or <see langword="null"/> when no one may.</summary>
-    public PieceColor? Mover => Snapshot is { } snapshot && !IsBusy && !IsThinking && TimedOut is null
+    public PieceColor? Mover => Snapshot is { } snapshot && !IsBusy && !IsThinking && TimedOut is null && RecordedResult is null
         ? Setup.HumanMover(snapshot)
         : null;
 
@@ -82,7 +89,7 @@ public sealed class GameSession : IAsyncDisposable
         && Snapshot is { History.Count: > 0 } snapshot
         && !IsBusy
         && !IsThinking
-        && (snapshot.IsOver || Mover is not null)
+        && (snapshot.IsOver || RecordedResult is not null || Mover is not null)
         && (Setup.Mode == GameMode.TwoPlayers || snapshot.History.Any(move => move.Color == Setup.PlayerColor));
 
     /// <summary>
@@ -123,6 +130,7 @@ public sealed class GameSession : IAsyncDisposable
             Setup = setup;
             Clock = setup.Clock is { } control ? new ChessClock(control, _time) : null;
             TimedOut = null;
+            RecordedResult = null;
         }
         catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
         {
@@ -187,6 +195,66 @@ public sealed class GameSession : IAsyncDisposable
     }
 
     /// <summary>
+    /// Opens a saved game (PGN) between two players on the same screen, without a clock, at its
+    /// last move. When the text is not a game, the current game stays as it was.
+    /// </summary>
+    /// <param name="pgn">The text of a .pgn file.</param>
+    /// <param name="cancellationToken">Cancels the call (the window closing).</param>
+    /// <exception cref="FormatException">The text is not a valid game.</exception>
+    public async Task LoadAsync(string pgn, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(pgn);
+        Interlocked.Increment(ref _generation);
+        await _search.CancelAsync();
+        await _gate.WaitAsync(cancellationToken);
+        try
+        {
+            _search.Dispose();
+            _search = new CancellationTokenSource();
+            SetBusy(true);
+            GameSnapshot snapshot = await _rules.LoadPgnAsync(pgn, cancellationToken);
+            Snapshot = snapshot;
+            Setup = GameSetup.TwoPlayers;
+            Clock = null;
+            TimedOut = null;
+            RecordedResult = !snapshot.IsOver && snapshot.RecordedResult != PgnTags.Ongoing ? snapshot.RecordedResult : null;
+        }
+        finally
+        {
+            ReleaseGate(busy: false);
+        }
+    }
+
+    /// <summary>Writes the current game as PGN, its result included.</summary>
+    /// <param name="date">The day to write in the <c>Date</c> tag.</param>
+    /// <param name="playerName">The name of the person at the screen, written for their side against the computer.</param>
+    /// <param name="cancellationToken">Cancels the call (the window closing).</param>
+    /// <returns>The text of a .pgn file.</returns>
+    public async Task<string> ExportPgnAsync(DateOnly date, string playerName, CancellationToken cancellationToken = default)
+    {
+        GameSnapshot snapshot = Snapshot ?? throw new InvalidOperationException("No game to save yet.");
+        string engine = $"Stockfish 19 lite (Skill {Setup.Level.SkillLevel()})";
+        string Name(PieceColor side) => Setup.Mode == GameMode.TwoPlayers ? "?" : side == Setup.ComputerColor ? engine : playerName;
+        var tags = new PgnTags(
+            "Casual game",
+            "HackerOS",
+            PgnTags.FormatDate(date),
+            Name(PieceColor.White),
+            Name(PieceColor.Black),
+            PgnTags.ResultOf(snapshot, TimedOut, RecordedResult));
+
+        await _gate.WaitAsync(cancellationToken);
+        try
+        {
+            return await _rules.ExportPgnAsync(tags, cancellationToken);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    /// <summary>
     /// Takes the player's last move back: one move between two players; against the computer, its
     /// reply too, so it is the player's turn again.
     /// </summary>
@@ -213,6 +281,7 @@ public sealed class GameSession : IAsyncDisposable
                 && snapshot.History.Count >= 2;
             SetBusy(true);
             Snapshot = await _rules.UndoAsync(computerReplied ? 2 : 1, cancellationToken);
+            RecordedResult = null;
         }
         finally
         {

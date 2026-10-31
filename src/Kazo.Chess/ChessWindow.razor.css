@@ -246,6 +246,12 @@
     }
 }
 
+.notice {
+    margin: 0;
+    color: var(--hos-text-secondary, #c9d1d9);
+    font-size: 0.85rem;
+}
+
 .error-note {
     margin: 0;
     padding: 10px 12px;

@@ -6,12 +6,15 @@ namespace Kazo.Chess.Model;
 /// </summary>
 /// <param name="Key">The text key, for example <c>StatusToMove</c>.</param>
 /// <param name="Side">The side named by the text (to move, or winner), or <see langword="null"/>.</param>
-public sealed record GameStatus(string Key, PieceColor? Side)
+/// <param name="Detail">A value the text quotes (a recorded result), or <see langword="null"/>.</param>
+public sealed record GameStatus(string Key, PieceColor? Side, string? Detail = null)
 {
     /// <summary>Describes a position, and a fallen flag when the clock ended the game.</summary>
     /// <param name="snapshot">The position.</param>
     /// <param name="timedOut">The side whose time ran out, or <see langword="null"/>.</param>
-    public static GameStatus Of(GameSnapshot snapshot, PieceColor? timedOut = null)
+    /// <param name="recorded">The result a loaded game ended with off the board (resignation,
+    /// time), shown while its position is not over; <see langword="null"/> otherwise.</param>
+    public static GameStatus Of(GameSnapshot snapshot, PieceColor? timedOut = null, string? recorded = null)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
         if (timedOut is { } flagged)
@@ -29,6 +32,7 @@ public sealed record GameStatus(string Key, PieceColor? Side)
             GameOutcome.InsufficientMaterial => new("StatusInsufficientMaterial", null),
             GameOutcome.ThreefoldRepetition => new("StatusThreefoldRepetition", null),
             GameOutcome.FiftyMoveRule => new("StatusFiftyMoveRule", null),
+            _ when recorded is not null => new("StatusRecorded", null, recorded),
             _ when snapshot.InCheck => new("StatusCheck", snapshot.Turn),
             _ => new("StatusToMove", snapshot.Turn),
         };
