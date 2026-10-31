@@ -1,4 +1,5 @@
 using Kazo.Chess.Model;
+using Kazo.Chess.Pgn;
 using Kazo.Chess.Rules;
 using Microsoft.JSInterop;
 
@@ -87,6 +88,45 @@ public sealed class ChessJsRulesTests
     }
 
     [Fact]
+    public async Task LoadPgnAsync_ReplacesTheGame_AndAnUnreadableTextIsAFormatError()
+    {
+        var js = new FakeRuntime();
+        await using var rules = new ChessJsRules(js);
+        await rules.NewGameAsync();
+
+        await rules.LoadPgnAsync("1. e4 *");
+        js.Module.FailNextLoad = true;
+        FormatException error = await Assert.ThrowsAsync<FormatException>(() => rules.LoadPgnAsync("1. e5"));
+
+        Assert.Equal(["1. e4 *", "1. e5"], js.Module.Loaded);
+        Assert.Contains("Invalid move in PGN", error.Message, StringComparison.Ordinal);
+        Assert.True(js.Module.Games[0].Disposed, "the loaded game replaced the first one");
+        Assert.False(js.Module.Games[1].Disposed, "a failed load keeps the current game");
+    }
+
+    [Fact]
+    public async Task LoadPgnAsync_AModuleThatDoesNotLoad_IsNotCalledABadFile()
+    {
+        var js = new FakeRuntime { FailImport = true };
+        await using var rules = new ChessJsRules(js);
+
+        await Assert.ThrowsAsync<JSException>(() => rules.LoadPgnAsync("1. e4 *"));
+    }
+
+    [Fact]
+    public async Task ExportPgnAsync_SendsTheTagsAsJson()
+    {
+        var js = new FakeRuntime();
+        await using var rules = new ChessJsRules(js);
+        await rules.NewGameAsync();
+
+        string pgn = await rules.ExportPgnAsync(new PgnTags("Casual game", "HackerOS", "2026.10.31", "neo", "?", "1-0"));
+
+        Assert.Equal("[pgn]", pgn);
+        Assert.Equal(["pgn {\"Event\":\"Casual game\",\"Site\":\"HackerOS\",\"Date\":\"2026.10.31\",\"White\":\"neo\",\"Black\":\"?\",\"Result\":\"1-0\"}"], js.Module.Games[0].Moves);
+    }
+
+    [Fact]
     public async Task UndoAsync_AsksForThePliesAndReadsThePosition()
     {
         var js = new FakeRuntime();
@@ -107,10 +147,15 @@ public sealed class ChessJsRulesTests
 
         public string? ImportedPath { get; private set; }
 
+        public bool FailImport { get; set; }
+
+        public ValueTask<TValue> InvokeAsync<TValue>(string identifier, CancellationToken cancellationToken, object?[]? args) =>
+            FailImport ? throw new JSException("Failed to fetch dynamically imported module") : Import<TValue>(identifier, args);
+
         public ValueTask<TValue> InvokeAsync<TValue>(string identifier, object?[]? args) =>
             InvokeAsync<TValue>(identifier, CancellationToken.None, args);
 
-        public ValueTask<TValue> InvokeAsync<TValue>(string identifier, CancellationToken cancellationToken, object?[]? args)
+        private ValueTask<TValue> Import<TValue>(string identifier, object?[]? args)
         {
             Assert.Equal("import", identifier);
             Imports++;
@@ -145,10 +190,27 @@ public sealed class ChessJsRulesTests
 
         public string? NextSnapshot { get; set; }
 
+        public List<string?> Loaded { get; } = [];
+
+        public bool FailNextLoad { get; set; }
+
         public override ValueTask<TValue> InvokeAsync<TValue>(string identifier, CancellationToken cancellationToken, object?[]? args)
         {
-            Assert.Equal("createGame", identifier);
-            CreatedWith.Add((string?)args?[0]);
+            if (identifier == "loadGame")
+            {
+                Loaded.Add((string?)args?[0]);
+                if (FailNextLoad)
+                {
+                    FailNextLoad = false;
+                    throw new JSException("Invalid move in PGN: e5");
+                }
+            }
+            else
+            {
+                Assert.Equal("createGame", identifier);
+                CreatedWith.Add((string?)args?[0]);
+            }
+
             var game = new FakeGame(NextSnapshot ?? Fixture.Json("start.json"));
             NextSnapshot = null;
             Games.Add(game);
@@ -168,6 +230,9 @@ public sealed class ChessJsRulesTests
             {
                 case "snapshot":
                     return ValueTask.FromResult((TValue)(object)snapshot);
+                case "pgn":
+                    Moves.Add($"pgn {args![0]}");
+                    return ValueTask.FromResult((TValue)(object)"[pgn]");
                 case "undo":
                     Moves.Add($"undo{args![0]}");
                     return ValueTask.FromResult((TValue)(object)snapshot);

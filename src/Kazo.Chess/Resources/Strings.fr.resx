@@ -207,4 +207,37 @@
   <data name="LoadingEngine" xml:space="preserve">
     <value>Démarrage du moteur d'échecs…</value>
   </data>
+  <data name="Open" xml:space="preserve">
+    <value>Ouvrir</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Enregistrer</value>
+  </data>
+  <data name="OpenTitle" xml:space="preserve">
+    <value>Ouvrir une partie</value>
+  </data>
+  <data name="SaveTitle" xml:space="preserve">
+    <value>Enregistrer la partie</value>
+  </data>
+  <data name="FilterPgn" xml:space="preserve">
+    <value>Parties d'échecs (PGN)</value>
+  </data>
+  <data name="FilterAll" xml:space="preserve">
+    <value>Tous les fichiers</value>
+  </data>
+  <data name="ConfirmOpen" xml:space="preserve">
+    <value>Abandonner la partie en cours et en ouvrir une autre ?</value>
+  </data>
+  <data name="PgnInvalid" xml:space="preserve">
+    <value>{0} n'est pas une partie que Chess peut lire : {1}</value>
+  </data>
+  <data name="FileFailed" xml:space="preserve">
+    <value>{0} n'a pas pu être utilisé : {1}</value>
+  </data>
+  <data name="Saved" xml:space="preserve">
+    <value>Enregistrée sous {0}.</value>
+  </data>
+  <data name="StatusRecorded" xml:space="preserve">
+    <value>Partie terminée : {0} (résultat enregistré)</value>
+  </data>
 </root>

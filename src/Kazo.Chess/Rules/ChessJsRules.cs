@@ -1,4 +1,6 @@
+using System.Text.Json;
 using Kazo.Chess.Model;
+using Kazo.Chess.Pgn;
 using Microsoft.JSInterop;
 
 namespace Kazo.Chess.Rules;
@@ -26,13 +28,50 @@ public sealed class ChessJsRules : IChessRules
     }
 
     /// <inheritdoc />
-    public async Task<GameSnapshot> NewGameAsync(string? fen = null, CancellationToken cancellationToken = default)
+    public Task<GameSnapshot> NewGameAsync(string? fen = null, CancellationToken cancellationToken = default) =>
+        ReplaceGameAsync("createGame", fen, cancellationToken);
+
+    /// <inheritdoc />
+    public async Task<GameSnapshot> LoadPgnAsync(string pgn, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(pgn);
+
+        // The module first: a failure to load it is not the file's fault.
+        _module ??= await _javaScript.InvokeAsync<IJSObjectReference>("import", cancellationToken, ModulePath);
+        try
+        {
+            return await ReplaceGameAsync("loadGame", pgn, cancellationToken);
+        }
+        catch (JSException exception)
+        {
+            // The rules module names what it could not read ("Invalid move in PGN: e5").
+            throw new FormatException(exception.Message, exception);
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<string> ExportPgnAsync(PgnTags tags, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(tags);
+        IJSObjectReference game = _game ?? throw new InvalidOperationException("Start a game with NewGameAsync first.");
+        string json = JsonSerializer.Serialize(new Dictionary<string, string>
+        {
+            ["Event"] = tags.Event,
+            ["Site"] = tags.Site,
+            ["Date"] = tags.Date,
+            ["White"] = tags.White,
+            ["Black"] = tags.Black,
+            ["Result"] = tags.Result,
+        }, PgnJsonContext.Default.DictionaryStringString);
+        return await game.InvokeAsync<string>("pgn", cancellationToken, json);
+    }
+
+    // The new game replaces the current one only once it exists and its first snapshot reads: a
+    // failure keeps the rules on the game the window still shows.
+    private async Task<GameSnapshot> ReplaceGameAsync(string factory, string? argument, CancellationToken cancellationToken)
     {
         _module ??= await _javaScript.InvokeAsync<IJSObjectReference>("import", cancellationToken, ModulePath);
-
-        // The new game replaces the current one only once it exists and its first snapshot reads:
-        // a failure keeps the rules on the game the window still shows.
-        IJSObjectReference game = await _module.InvokeAsync<IJSObjectReference>("createGame", cancellationToken, fen);
+        IJSObjectReference game = await _module.InvokeAsync<IJSObjectReference>(factory, cancellationToken, argument);
         GameSnapshot snapshot;
         try
         {
@@ -96,3 +135,7 @@ public sealed class ChessJsRules : IChessRules
         }
     }
 }
+
+/// <summary>Source-generated JSON metadata of the PGN tags sent to the rules module.</summary>
+[System.Text.Json.Serialization.JsonSerializable(typeof(Dictionary<string, string>))]
+internal sealed partial class PgnJsonContext : System.Text.Json.Serialization.JsonSerializerContext;

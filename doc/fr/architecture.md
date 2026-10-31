@@ -45,7 +45,8 @@ le Hack Store attend que l'OS serve les fichiers `wwwroot/` des apps installées
 
 | Dossier ou fichier | Rôle |
 | --- | --- |
-| `ChessApp.cs` | Manifeste (`[AppManifest]`) : id `ca.kazo.chess`, éditeur `pub.kazo`, catégorie `games`, bureau et mobile, fenêtre 860×640 (minimum 360×420). |
+| `ChessApp.cs` | Manifeste (`[AppManifest]`) : id `ca.kazo.chess`, éditeur `pub.kazo`, catégorie `games`, bureau et mobile, fenêtre 860×640 (minimum 360×420). Capacités `dialogs.file-open`, `dialogs.file-save`, `filesystem.user-home.read` et `.write` ; ouvre les `.pgn` (`application/x-chess-pgn`). |
+| `Pgn/PgnTags.cs` | Les balises d'une partie enregistrée et son résultat PGN (`1-0`, `0-1`, `1/2-1/2`, `*`). |
 | `ChessWindow.razor` (+ `.cs`, `.css`) | La fenêtre : barre d'outils (« Nouvelle partie »), plateau, panneau d'état (tour, joueurs, « L'ordinateur réfléchit… »). Elle affiche la `GameSession` et lui passe ce que fait le joueur. |
 | `Components/NewGameDialog.razor` (+ `.cs`, `.css`) | Le dialogue « Nouvelle partie », dans la fenêtre : deux joueurs ou contre l'ordinateur, niveau, couleur. Il remplace une boîte de confirmation : il dit quand la partie en cours sera abandonnée. |
 | `Game/GameSetup.cs` | Comment la partie est montée : mode, niveau, couleur du joueur ; côté affiché en bas ; qui peut bouger. |
@@ -163,6 +164,40 @@ Depuis le chantier 3, Stockfish reçoit la position de départ et tous les coups
 - **Stockfish voit la partie** : il reçoit la position de départ et tous les
   coups (`position fen <départ> moves e2e4 e7e5 …`), donc les répétitions.
 
+### Fichiers `.pgn`
+
+- **Enregistrer** : le dialogue d'enregistrement du SDK propose
+  `chess-AAAA-MM-JJ.pgn` (ou le nom de la partie ouverte) ; le fichier reçoit
+  les sept balises (`Event "Casual game"`, `Site "HackerOS"`, la date, les
+  joueurs, le résultat) puis les coups, écrits par chess.js. Contre
+  l'ordinateur, les joueurs sont l'identifiant de connexion et
+  `Stockfish 19 lite (Skill N)` ; entre deux joueurs, `?`. Le résultat suit la
+  partie : mat, nulle, temps écoulé, ou `*` pour une partie en cours.
+- **Ouvrir** : le dialogue d'ouverture du SDK, ou un double-clic sur un `.pgn`
+  dans l'explorateur, ou « Ouvrir avec » (le manifeste déclare le type). La
+  partie s'ouvre entre deux joueurs, sans pendule, à son dernier coup ; ses coups
+  sont rejoués (feuille de partie, annuler et Stockfish les voient). Une partie
+  partant d'une position (`[FEN]`) garde ce départ. Une partie enregistrée comme
+  terminée hors de l'échiquier (abandon, nulle d'accord) reste terminée jusqu'à
+  ce qu'on annule un coup. Un fichier illisible laisse la partie en cours et dit
+  pourquoi (chess.js nomme le premier coup illégal).
+- Le titre de la fenêtre devient `partie.pgn — Échecs`.
+- **Garde-fous** : chaque valeur de balise est nettoyée avant l'écriture (une
+  ligne, pas de guillemet ni de barre oblique inverse, 255 caractères au plus) :
+  un identifiant comme `Jo"hn` ne casse pas le fichier. Un fichier de plus de
+  64 Ko ou une partie de plus de 1 000 demi-coups est refusé (chess.js tourne
+  sur le fil de la page et mettrait des secondes). D'une collection, la première
+  partie est chargée. Un chargement raté pendant que l'ordinateur réfléchit lui
+  rend son tour.
+- **Limites** : une partie rouverte puis enregistrée reçoit de nouvelles balises
+  (`Casual game`, la date du jour) ; les autres balises qu'elle avait sont
+  gardées. Les fichiers sont lus et écrits par `HackFile` avec les droits du
+  dossier personnel ; un fichier choisi ailleurs dans le dialogue est refusé
+  (le handle choisi n'est pas encore utilisé). Les dialogues reçoivent toujours
+  un dossier de départ : sans lui, ceux de la 2.1.0 devinent un dossier
+  personnel à partir de l'identifiant interne de l'utilisateur, qui n'existe
+  pas, et l'OS s'arrête sur l'erreur.
+
 ### Saisie des coups
 
 Deux façons de jouer, comme sur un vrai plateau, avec la souris comme au
@@ -219,9 +254,9 @@ dans le menu Applications (« Toutes les applications » sur mobile).
 
 | Suite | Ce qu'elle couvre |
 | --- | --- |
-| `tests/Kazo.Chess.Tests` | `Square`, `BoardPosition`, `MoveRequest`, `GameStatus`, lecture des snapshots (sur des snapshots réels de chess.js dans `Fixtures/`, écrits par `tests/js/write-fixtures.mjs`), `ChessJsRules` (sur un faux runtime JS : une nouvelle partie qui échoue garde l'ancienne) toute l'interaction du plateau, `GameSetup`, `GameSession` (avec un faux moteur : réponse de l'ordinateur, coup refusé, nouvelle partie pendant qu'il réfléchit, moteur qui ne démarre pas) et `StockfishEngine` (faux worker : un seul démarrage, options UCI, `stop` à l'annulation, jeton déjà annulé, fermeture pendant le démarrage) ; courses de `GameSession` : deux nouvelles parties qui se chevauchent, coup demandé pendant un départ, coup trouvé au moment d'une nouvelle partie, départ qui échoue, abonné de `Changed` qui lève une exception ; la pendule (sur un faux `TimeProvider`), le temps écoulé, l'annulation, la position envoyée au moteur. 177 tests. |
-| `tests/js` | Le module `chess-rules.js` avec chess.js : coups légaux et illégaux, mat, pat, promotion, matériel insuffisant, règle des 50 coups. Le module `chess-engine.js` avec un faux worker : ordre UCI, file des recherches, `stop`, échéances, erreur du worker, `terminate`. Annuler, position de départ, promotion dans l'historique. 17 tests. |
-| `tests/e2e` | L'app dans l'hôte, dans Chromium : coups au clic, au glisser et au clavier ; mat du berger (plateau verrouillé) ; promotion (annulée au bouton, puis choisie au clavier avec le focus sur le sélecteur) ; écran de téléphone (Pixel 7) et toucher ; contre Stockfish avec les Noirs (il ouvre, on répond, il rejoue) ; Échap ferme le dialogue et rend le focus ; une nouvelle partie pendant que Stockfish réfléchit (son coup n'est pas joué) ; annuler et retourner à deux, annuler contre l'ordinateur, pendule 5+0. 10 parcours. `CHESS_BASE_URL` réutilise un hôte déjà lancé. |
+| `tests/Kazo.Chess.Tests` | `Square`, `BoardPosition`, `MoveRequest`, `GameStatus`, lecture des snapshots (sur des snapshots réels de chess.js dans `Fixtures/`, écrits par `tests/js/write-fixtures.mjs`), `ChessJsRules` (sur un faux runtime JS : une nouvelle partie qui échoue garde l'ancienne) toute l'interaction du plateau, `GameSetup`, `GameSession` (avec un faux moteur : réponse de l'ordinateur, coup refusé, nouvelle partie pendant qu'il réfléchit, moteur qui ne démarre pas) et `StockfishEngine` (faux worker : un seul démarrage, options UCI, `stop` à l'annulation, jeton déjà annulé, fermeture pendant le démarrage) ; courses de `GameSession` : deux nouvelles parties qui se chevauchent, coup demandé pendant un départ, coup trouvé au moment d'une nouvelle partie, départ qui échoue, abonné de `Changed` qui lève une exception ; la pendule (sur un faux `TimeProvider`), le temps écoulé, l'annulation, la position envoyée au moteur ; le PGN (résultats, balises, partie chargée, résultat enregistré, fichier trop grand, chargement raté pendant que l'ordinateur réfléchit). 199 tests. |
+| `tests/js` | Le module `chess-rules.js` avec chess.js : coups légaux et illégaux, mat, pat, promotion, matériel insuffisant, règle des 50 coups. Le module `chess-engine.js` avec un faux worker : ordre UCI, file des recherches, `stop`, échéances, erreur du worker, `terminate`. Annuler, position de départ, promotion dans l'historique ; PGN aller-retour, position de départ `[FEN]`, texte invalide, nom hostile, collection, plus de 1 000 demi-coups. 26 tests. |
+| `tests/e2e` | L'app dans l'hôte, dans Chromium : coups au clic, au glisser et au clavier ; mat du berger (plateau verrouillé) ; promotion (annulée au bouton, puis choisie au clavier avec le focus sur le sélecteur) ; écran de téléphone (Pixel 7) et toucher ; contre Stockfish avec les Noirs (il ouvre, on répond, il rejoue) ; Échap ferme le dialogue et rend le focus ; une nouvelle partie pendant que Stockfish réfléchit (son coup n'est pas joué) ; annuler et retourner à deux, annuler contre l'ordinateur, pendule 5+0 ; enregistrer une partie en `.pgn` et la rouvrir. 11 parcours. `CHESS_BASE_URL` réutilise un hôte déjà lancé. |
 
 La CI (`.github/workflows/ci.yml`) fait tout cela à chaque push et à chaque PR.
 
@@ -274,6 +309,11 @@ Chantier 3 (`chess/3-history-and-clock`) :
 - [x] Stockfish reçoit le départ et tous les coups.
 - [x] Tests C# (pendule sur un faux `TimeProvider`), node et de bout en bout.
 
-Suite du plan : fichiers `.pgn` (enregistrer, ouvrir, association de fichiers),
-puis le passage au modèle `hackeros-solution` et la publication au Store (voir
-le [plan](plan.md)).
+Chantier 4 (`chess/4-pgn-files`) :
+
+- [x] Enregistrer en `.pgn` (balises, résultat), ouvrir un `.pgn`.
+- [x] Association des `.pgn` dans le manifeste, ouverture du fichier de lancement.
+- [x] Tests C#, node et de bout en bout (enregistrer puis rouvrir).
+
+Suite du plan : passage au modèle `hackeros-solution` et publication au Store,
+après la release HackerOS qui contient le modèle (voir le [plan](plan.md)).

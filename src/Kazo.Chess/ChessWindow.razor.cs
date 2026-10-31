@@ -1,4 +1,7 @@
+using HackerOs.App.Abstractions;
+using HackerOs.AppSdk.Blazor;
 using HackerOs.AppSdk.Globalization;
+using HackerOs.AppSdk.IO;
 using Kazo.Chess.Components;
 using Kazo.Chess.Engine;
 using Kazo.Chess.Game;
@@ -28,6 +31,9 @@ public sealed partial class ChessWindow : IAsyncDisposable
     private bool _focusNewGameButton;
     private ElementReference _newGameButton;
     private string? _error;
+    private string? _notice;
+    private string? _documentName;
+    private string? _documentDirectory;
     private Timer? _clockTimer;
     private IStringLocalizer<Strings>? _localizer;
 
@@ -70,7 +76,14 @@ public sealed partial class ChessWindow : IAsyncDisposable
     {
         if (firstRender)
         {
-            await RunGameAsync(() => _session.StartAsync(GameSetup.TwoPlayers, AppContext.CancellationToken));
+            // Opened on a .pgn file (a double-click, "Open with"): that game, otherwise a new one.
+            if (LaunchFile is not { } file || !await LoadFileAsync(file.Value))
+            {
+                // A launch file that could not be opened keeps its message over the new game.
+                string? launchError = _error;
+                await RunGameAsync(() => _session.StartAsync(GameSetup.TwoPlayers, AppContext.CancellationToken));
+                _error ??= launchError;
+            }
 
             // Nothing renders after OnAfterRender on its own: show the first game, or why it failed.
             StateHasChanged();
@@ -93,16 +106,128 @@ public sealed partial class ChessWindow : IAsyncDisposable
         _focusNewGameButton = true;
     }
 
-    private Task StartNewGameAsync(NewGameChoice choice)
+    private async Task StartNewGameAsync(NewGameChoice choice)
     {
         _lastChoice = choice;
         CloseNewGameDialog();
-        _flipped = false;
         GameSetup setup = choice.Mode == GameMode.AgainstComputer
             ? GameSetup.AgainstComputer(choice.Level, choice.Color, Random.Shared, choice.TimeControl)
             : GameSetup.TwoPlayers with { Clock = choice.TimeControl };
-        return RunGameAsync(() => _session.StartAsync(setup, AppContext.CancellationToken));
+        await RunGameAsync(() => _session.StartAsync(setup, AppContext.CancellationToken));
+        if (_error is null)
+        {
+            // The new game is on the board: it is no longer the saved one.
+            _flipped = false;
+            await SetDocumentAsync(null);
+        }
     }
+
+    // Open a saved game: the current one is abandoned only once the player confirms and the file reads.
+    private async Task OpenPgnAsync()
+    {
+        if (_session.Snapshot is { History.Count: > 0 } && !_session.IsOver)
+        {
+            MessageBoxDialogResult answer = await MessageBox(L["Open"], L["ConfirmOpen"], MessageBoxType.YesNo);
+            if (answer.Result != MessageBoxResult.Yes)
+            {
+                return;
+            }
+        }
+
+        OpenFileDialogResult result = await OpenFileAsync(new OpenFileDialogRequest
+        {
+            Title = L["OpenTitle"],
+            InitialDirectory = DialogDirectory,
+            Filters = [new FileDialogFilter(L["FilterPgn"], [".pgn"], ["application/x-chess-pgn"]), new FileDialogFilter(L["FilterAll"], [], [])],
+            RequestedAccess = SelectedFileAccess.Read,
+        });
+        if (result.Status == FileDialogStatus.Selected && result.Resources.Count > 0)
+        {
+            await LoadFileAsync(result.Resources[0].Path.Value);
+        }
+    }
+
+    private async Task SavePgnAsync()
+    {
+        SaveFileDialogResult result = await SaveFileAsync(new SaveFileDialogRequest
+        {
+            Title = L["SaveTitle"],
+            InitialDirectory = DialogDirectory,
+            SuggestedFileName = _documentName ?? $"chess-{Today:yyyy-MM-dd}.pgn",
+            DefaultExtension = ".pgn",
+            Filters = [new FileDialogFilter(L["FilterPgn"], [".pgn"], ["application/x-chess-pgn"])],
+            ConfirmOverwrite = true,
+        });
+        if (result.Status != FileDialogStatus.Selected || result.Resource is not { } target)
+        {
+            return;
+        }
+
+        string path = target.Path.Value;
+        string name = HackPath.GetFileName(path);
+        try
+        {
+            string pgn = await _session.ExportPgnAsync(Today, AppContext.UserLoginName, AppContext.CancellationToken);
+            await HackFile.WriteAllTextAsync(path, pgn, AppContext.CancellationToken);
+            RememberFolder(path);
+            await SetDocumentAsync(name);
+            _error = null;
+            _notice = L["Saved", name];
+        }
+        catch (Exception exception) when (exception is HackIOException or HackUnauthorizedAccessException or JSException)
+        {
+            _error = L["FileFailed", name, exception.Message];
+        }
+    }
+
+    // The next dialog opens where the last game was read or written (never on an empty path).
+    private void RememberFolder(string path) =>
+        _documentDirectory = HackPath.GetDirectoryName(path) is { Length: > 0 } folder ? folder : _documentDirectory;
+
+    // Reads a .pgn file and opens its game; a file that does not read, or is not a game, leaves the
+    // current game as it was and says why.
+    private async Task<bool> LoadFileAsync(string path)
+    {
+        string name = HackPath.GetFileName(path);
+        try
+        {
+            string pgn = await HackFile.ReadAllTextAsync(path, AppContext.CancellationToken);
+            await _session.LoadAsync(pgn, AppContext.CancellationToken);
+            RememberFolder(path);
+            _flipped = false;
+            await SetDocumentAsync(name);
+            _error = null;
+            _notice = null;
+            return true;
+        }
+        catch (FormatException exception)
+        {
+            _error = L["PgnInvalid", name, exception.Message];
+        }
+        catch (Exception exception) when (exception is HackIOException or HackUnauthorizedAccessException or JSException)
+        {
+            _error = L["FileFailed", name, exception.Message];
+        }
+
+        return false;
+    }
+
+    // "game.pgn — Chess" while a saved game is shown, the app's name otherwise (ADR 0117 of HackerOS).
+    private async Task SetDocumentAsync(string? name)
+    {
+        _documentName = name;
+        _notice = null;
+        await SetWindowTitleAsync(name is null ? WindowTitleForApp : FormatWindowTitle(name, false));
+    }
+
+    private string WindowTitleForApp => L["AppTitle"];
+
+    // The dialogs open in the folder of the last game, or in the user's home folder. Always given:
+    // without it, the 2.1.0 dialogs guess a home folder from the user's internal id, which does not
+    // exist, and the OS stops on the error.
+    private VirtualPath DialogDirectory => VirtualPath.Parse(_documentDirectory ?? AppContext.HomeDirectory);
+
+    private DateOnly Today => DateOnly.FromDateTime(DateTime.Now);
 
     // The player's move, then the computer's reply when it plays; a refused move changes nothing.
     private Task PlayAsync(MoveRequest move) =>
@@ -153,8 +278,12 @@ public sealed partial class ChessWindow : IAsyncDisposable
 
     private void OnBoardScriptError(string message) => _error = L["PointerUnavailable", message];
 
-    private string StatusText(GameStatus status) =>
-        status.Side is { } side ? L[status.Key, SideName(side)] : L[status.Key];
+    private string StatusText(GameStatus status) => status switch
+    {
+        { Side: { } side } => L[status.Key, SideName(side)],
+        { Detail: { } detail } => L[status.Key, detail],
+        _ => L[status.Key],
+    };
 
     private string SideName(PieceColor side) => side == PieceColor.White ? L["SideWhite"] : L["SideBlack"];
 

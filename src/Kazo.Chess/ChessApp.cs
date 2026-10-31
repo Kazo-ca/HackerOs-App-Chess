@@ -34,6 +34,20 @@ public sealed class ChessApp : AppDefinition
     public override string Category => "games";
 
     /// <inheritdoc />
+    public override IReadOnlyList<string> Capabilities =>
+    [
+        AppCapabilities.FileSystemUserHomeRead,
+        AppCapabilities.FileSystemUserHomeWrite,
+        AppCapabilities.DialogFileOpen,
+        AppCapabilities.DialogFileSave,
+    ];
+
+    /// <inheritdoc />
+    /// <remarks>Chess opens saved games: "Open with" and a double-click on a .pgn file start it.</remarks>
+    public override IReadOnlyList<FileHandler> FileHandlers =>
+        [new("application/x-chess-pgn", [".pgn"], ["open"])];
+
+    /// <inheritdoc />
     public override IReadOnlyList<string> Icons => ["icons/app.svg"];
 
     /// <inheritdoc />

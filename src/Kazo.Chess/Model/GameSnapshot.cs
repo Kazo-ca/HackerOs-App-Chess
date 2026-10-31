@@ -56,6 +56,7 @@ public sealed class GameSnapshot
     /// <param name="legalMoves">The moves the side to move may play (empty once the game is over).</param>
     /// <param name="history">The moves played since the starting position, oldest first.</param>
     /// <param name="startFen">The position the game started from; <paramref name="fen"/> when <see langword="null"/>.</param>
+    /// <param name="recordedResult">The result a loaded game was saved with (<c>*</c> for a game still going).</param>
     /// <exception cref="FormatException">The FEN placement is not valid.</exception>
     public GameSnapshot(
         string fen,
@@ -64,12 +65,14 @@ public sealed class GameSnapshot
         GameOutcome outcome,
         IReadOnlyList<LegalMove> legalMoves,
         IReadOnlyList<PlayedMove> history,
-        string? startFen = null)
+        string? startFen = null,
+        string recordedResult = "*")
     {
         ArgumentNullException.ThrowIfNull(legalMoves);
         ArgumentNullException.ThrowIfNull(history);
         Fen = fen;
         StartFen = startFen ?? fen;
+        RecordedResult = recordedResult;
         Board = BoardPosition.FromFen(fen);
         Turn = turn;
         InCheck = inCheck;
@@ -83,6 +86,12 @@ public sealed class GameSnapshot
 
     /// <summary>Gets the position the game started from (the engine replays <see cref="History"/> from it).</summary>
     public string StartFen { get; }
+
+    /// <summary>
+    /// Gets the result a loaded game was saved with: <c>1-0</c>, <c>0-1</c>, <c>1/2-1/2</c>, or
+    /// <c>*</c> for a game still going (and for every game played here).
+    /// </summary>
+    public string RecordedResult { get; }
 
     /// <summary>Gets the pieces on the board, read from <see cref="Fen"/>.</summary>
     public BoardPosition Board { get; }

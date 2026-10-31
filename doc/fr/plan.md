@@ -74,5 +74,5 @@ dans la série `chess/base` (une branche et une PR par chantier).
 | 1. Plateau SVG, saisie (souris, toucher, clavier), règles par chess.js, deux joueurs | `chess/1-board-and-rules` | Fait (pièces « celtic », MIT) |
 | 2. Contre l'ordinateur : stockfish.js lite, 5 niveaux, choix de la couleur | `chess/2-engine` | Fait (Stockfish 19 lite, 1,8 Mo) |
 | 3. Historique, annuler, retourner le plateau, pendule | `chess/3-history-and-clock` | Fait (Stockfish reçoit aussi l'historique) |
-| 4. Fichiers `.pgn`, association de fichiers | | À faire |
-| 5. Passage au modèle `hackeros-solution`, dossier `store/`, tag `v1.0.0` | | Attend Kazo-ca/HackerOs#246 à #249 |
+| 4. Fichiers `.pgn`, association de fichiers | `chess/4-pgn-files` | Fait |
+| 5. Passage au modèle `hackeros-solution`, dossier `store/`, tag `v1.0.0` | | #246 à #249 faits dans `todo/base` ; attend leur arrivée dans `main` et la release 2.2.0 (ADR 0207 §11) |

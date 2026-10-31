@@ -20,6 +20,19 @@ public interface IChessRules : IAsyncDisposable
     /// <returns>The new position, or <see langword="null"/> when the move is illegal (the position does not change).</returns>
     Task<GameSnapshot?> TryMoveAsync(MoveRequest move, CancellationToken cancellationToken = default);
 
+    /// <summary>Starts a game from a saved one (PGN), replacing the current one; its moves are replayed.</summary>
+    /// <param name="pgn">The text of a .pgn file.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    /// <returns>The position after the last move of the saved game.</returns>
+    /// <exception cref="FormatException">The text is not a valid game (the current one is kept).</exception>
+    Task<GameSnapshot> LoadPgnAsync(string pgn, CancellationToken cancellationToken = default);
+
+    /// <summary>Writes the current game as PGN.</summary>
+    /// <param name="tags">The tags to write before the moves.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    /// <returns>The text of a .pgn file.</returns>
+    Task<string> ExportPgnAsync(Pgn.PgnTags tags, CancellationToken cancellationToken = default);
+
     /// <summary>Takes moves back.</summary>
     /// <param name="plies">How many half-moves to take back (fewer when the game has fewer).</param>
     /// <param name="cancellationToken">Cancels the call.</param>

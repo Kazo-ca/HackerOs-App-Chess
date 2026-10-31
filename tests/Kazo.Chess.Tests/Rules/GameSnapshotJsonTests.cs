@@ -31,6 +31,17 @@ public sealed class GameSnapshotJsonTests
         Assert.Equal(new Piece(PieceColor.White, PieceType.Pawn), snapshot.Board[Square.Parse("e4")]);
     }
 
+    [Theory]
+    [InlineData("\"1-0\"", "1-0")]
+    [InlineData("\"*\"", "*")]
+    [InlineData("\"anything\"", "*")]
+    public void Parse_ReadsTheRecordedResult(string json, string expected)
+    {
+        string text = Fixture.Json("start.json").Replace("\"result\": \"*\"", $"\"result\": {json}", StringComparison.Ordinal);
+
+        Assert.Equal(expected, GameSnapshotJson.Parse(text).RecordedResult);
+    }
+
     [Fact]
     public void Parse_ReadsACheckmateAndItsWinner()
     {

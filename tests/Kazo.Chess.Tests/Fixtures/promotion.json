@@ -1,5 +1,6 @@
 {
   "startFen": "8/P6k/8/8/8/8/8/K7 w - - 0 1",
+  "result": "*",
   "fen": "8/P6k/8/8/8/8/8/K7 w - - 0 1",
   "turn": "w",
   "inCheck": false,

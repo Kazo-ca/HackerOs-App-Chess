@@ -1,5 +1,6 @@
 {
   "startFen": "8/8/8/8/8/5k2/8/KR6 w - - 100 80",
+  "result": "*",
   "fen": "8/8/8/8/8/5k2/8/KR6 w - - 100 80",
   "turn": "w",
   "inCheck": false,
