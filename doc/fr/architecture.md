@@ -108,11 +108,29 @@ parler UCI (`uci`, `isready`, `ucinewgame`, `setoption name Skill Level`,
 `position fen`, `go movetime`, `stop`) et met les recherches en file.
 
 `GameSession` fait passer chaque changement de la partie par une seule porte :
-un coup et une nouvelle partie ne se croisent jamais. Une nouvelle partie
-pendant que l'ordinateur réfléchit annule sa recherche (Stockfish s'arrête tout
-de suite) ; sa réponse tardive porte un ancien numéro de partie et n'est pas
-jouée. Un moteur qui n'a pas pu démarrer est jeté, la partie suivante en lance
-un neuf.
+un coup et une nouvelle partie ne se croisent jamais. Chaque nouvelle partie
+prend son numéro **avant** d'attendre la porte et annule la recherche en cours
+(Stockfish s'arrête tout de suite) : tout ce qui attendait derrière la porte
+pour une partie plus ancienne (un départ, un coup, le tour de l'ordinateur) voit
+un numéro plus récent et abandonne. Rien d'une ancienne partie n'arrive dans la
+nouvelle.
+
+Pannes :
+
+- chaque demande au worker a une **échéance** (20 s pour la poignée de main
+  UCI, le temps de réflexion plus 5 s pour une recherche) ; un worker muet est
+  arrêté et l'erreur s'affiche, la fenêtre ne se fige jamais ;
+- un moteur qui ne démarre pas est jeté et **un** moteur neuf est essayé ;
+- une nouvelle partie qui échoue **laisse la partie en cours telle quelle** (le
+  moteur et les règles sont prêts avant que la fenêtre change de partie), et
+  l'ordinateur reprend son tour s'il réfléchissait ;
+- un worker qui meurt en cours de partie est signalé ; la nouvelle partie
+  suivante en lance un neuf ;
+- un worker créé après la fermeture de la fenêtre est arrêté aussitôt.
+
+**Limite connue** : Stockfish reçoit la position (`position fen`), pas
+l'historique des coups. Il ne voit donc pas les répétitions et peut aller vers
+une nulle par triple répétition qu'il éviterait autrement.
 
 ### Saisie des coups
 
@@ -170,9 +188,9 @@ dans le menu Applications (« Toutes les applications » sur mobile).
 
 | Suite | Ce qu'elle couvre |
 | --- | --- |
-| `tests/Kazo.Chess.Tests` | `Square`, `BoardPosition`, `MoveRequest`, `GameStatus`, lecture des snapshots (sur des snapshots réels de chess.js dans `Fixtures/`, écrits par `tests/js/write-fixtures.mjs`), `ChessJsRules` (sur un faux runtime JS : une nouvelle partie qui échoue garde l'ancienne) toute l'interaction du plateau, `GameSetup`, `GameSession` (avec un faux moteur : réponse de l'ordinateur, coup refusé, nouvelle partie pendant qu'il réfléchit, moteur qui ne démarre pas) et `StockfishEngine` (faux worker : un seul démarrage, options UCI, `stop` à l'annulation). 126 tests. |
-| `tests/js` | Le module `chess-rules.js` avec chess.js : coups légaux et illégaux, mat, pat, promotion, matériel insuffisant, règle des 50 coups. |
-| `tests/e2e` | L'app dans l'hôte, dans Chromium : coups au clic, au glisser et au clavier ; mat du berger (plateau verrouillé) ; promotion (annulée au bouton, puis choisie au clavier avec le focus sur le sélecteur) ; écran de téléphone (Pixel 7) et toucher ; contre Stockfish avec les Noirs (il ouvre, on répond, il rejoue). `CHESS_BASE_URL` réutilise un hôte déjà lancé. |
+| `tests/Kazo.Chess.Tests` | `Square`, `BoardPosition`, `MoveRequest`, `GameStatus`, lecture des snapshots (sur des snapshots réels de chess.js dans `Fixtures/`, écrits par `tests/js/write-fixtures.mjs`), `ChessJsRules` (sur un faux runtime JS : une nouvelle partie qui échoue garde l'ancienne) toute l'interaction du plateau, `GameSetup`, `GameSession` (avec un faux moteur : réponse de l'ordinateur, coup refusé, nouvelle partie pendant qu'il réfléchit, moteur qui ne démarre pas) et `StockfishEngine` (faux worker : un seul démarrage, options UCI, `stop` à l'annulation, jeton déjà annulé, fermeture pendant le démarrage) ; courses de `GameSession` : deux nouvelles parties qui se chevauchent, coup demandé pendant un départ, coup trouvé au moment d'une nouvelle partie, départ qui échoue, abonné de `Changed` qui lève une exception. 135 tests. |
+| `tests/js` | Le module `chess-rules.js` avec chess.js : coups légaux et illégaux, mat, pat, promotion, matériel insuffisant, règle des 50 coups. Le module `chess-engine.js` avec un faux worker : ordre UCI, file des recherches, `stop`, échéances, erreur du worker, `terminate`. 15 tests. |
+| `tests/e2e` | L'app dans l'hôte, dans Chromium : coups au clic, au glisser et au clavier ; mat du berger (plateau verrouillé) ; promotion (annulée au bouton, puis choisie au clavier avec le focus sur le sélecteur) ; écran de téléphone (Pixel 7) et toucher ; contre Stockfish avec les Noirs (il ouvre, on répond, il rejoue) ; Échap ferme le dialogue et rend le focus ; une nouvelle partie pendant que Stockfish réfléchit (son coup n'est pas joué). 7 parcours. `CHESS_BASE_URL` réutilise un hôte déjà lancé. |
 
 La CI (`.github/workflows/ci.yml`) fait tout cela à chaque push et à chaque PR.
 
@@ -214,6 +232,9 @@ Chantier 2 (`chess/2-engine`) :
 - [x] Dialogue « Nouvelle partie » dans la fenêtre, plateau tourné vers le joueur.
 - [x] `GameSession` : réponses de l'ordinateur, annulation à la nouvelle partie.
 - [x] Tests C# (faux moteur et faux worker) et de bout en bout contre Stockfish.
+- [x] Relecture indépendante : numéro de partie pris avant la porte, échéances du
+  worker, départ raté sans effet sur la partie en cours, focus et clavier du
+  dialogue (Échap, Tab, retour au bouton).
 
 Suite du plan : historique, annuler, retourner le plateau, pendule, fichiers
 `.pgn` (voir le [plan](plan.md)).

@@ -10,6 +10,14 @@
     backdrop-filter: blur(3px);
 }
 
+.focus-guard {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+}
+
 .new-game-dialog {
     width: min(440px, 100%);
     max-height: 100%;
@@ -24,6 +32,7 @@
     border-top: 3px solid var(--hos-accent, #42d392);
     border-radius: var(--hos-radius-lg, 10px);
     box-shadow: var(--hos-shadow-lg, 0 16px 40px rgba(0, 0, 0, 0.55));
+    outline: none;
 }
 
 .dialog-title {

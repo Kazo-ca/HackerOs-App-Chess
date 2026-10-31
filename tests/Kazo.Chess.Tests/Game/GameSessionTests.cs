@@ -61,7 +61,8 @@ public sealed class GameSessionTests
     public async Task PlayAsync_OnTheComputersTurn_IsRefused()
     {
         var rules = new FakeRules();
-        var engine = new FakeEngine { Hold = new TaskCompletionSource<MoveRequest?>() };
+        var hold = new TaskCompletionSource<MoveRequest?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var engine = new FakeEngine { Hold = hold };
         await using var session = new GameSession(rules, () => engine);
         Task start = session.StartAsync(Computer(PieceColor.Black));
         await engine.Searching.Task;
@@ -70,7 +71,7 @@ public sealed class GameSessionTests
         Assert.Null(session.Mover);
         Assert.False(await session.PlayAsync(Move("e7e5")));
 
-        engine.Hold.SetResult(Move("e2e4"));
+        hold.SetResult(Move("e2e4"));
         await start;
         Assert.Equal(["e2e4"], rules.Played);
     }
@@ -108,7 +109,7 @@ public sealed class GameSessionTests
     }
 
     [Fact]
-    public async Task AnEngineThatFailsToStart_IsReplacedByTheNextGame()
+    public async Task AnEngineThatFailsToStart_IsReplacedOnce_AndTheGameStarts()
     {
         var rules = new FakeRules();
         var broken = new FakeEngine { FailOnNewGame = true };
@@ -116,11 +117,145 @@ public sealed class GameSessionTests
         var engines = new Queue<FakeEngine>([broken, working]);
         await using var session = new GameSession(rules, engines.Dequeue);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => session.StartAsync(Computer(PieceColor.White)));
         await session.StartAsync(Computer(PieceColor.White));
 
         Assert.True(broken.Disposed);
         Assert.Equal(1, working.NewGames);
+        Assert.Equal(GameMode.AgainstComputer, session.Setup.Mode);
+    }
+
+    [Fact]
+    public async Task AStartThatFails_KeepsTheCurrentGameAsItWas()
+    {
+        var rules = new FakeRules();
+        var engines = new Queue<FakeEngine>([new() { FailOnNewGame = true }, new() { FailOnNewGame = true }]);
+        await using var session = new GameSession(rules, engines.Dequeue);
+        await session.StartAsync(GameSetup.TwoPlayers);
+        await session.PlayAsync(Move("e2e4"));
+        GameSnapshot before = session.Snapshot!;
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => session.StartAsync(Computer(PieceColor.White)));
+
+        Assert.Same(before, session.Snapshot);
+        Assert.Equal(GameMode.TwoPlayers, session.Setup.Mode);
+        Assert.Equal(PieceColor.Black, session.Mover);
+        Assert.False(session.IsBusy);
+    }
+
+    [Fact]
+    public async Task AStartThatFails_LetsTheComputerTakeItsTurnAgain()
+    {
+        var rules = new FakeRules();
+        var engine = new FakeEngine { Hold = new TaskCompletionSource<MoveRequest?>(), Replies = { Move("d2d4") } };
+        await using var session = new GameSession(rules, () => engine);
+        Task first = session.StartAsync(Computer(PieceColor.Black));
+        await engine.Searching.Task;
+        rules.FailNewGame = true;
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => session.StartAsync(GameSetup.TwoPlayers));
+        await first;
+
+        Assert.Equal(["d2d4"], rules.Played);
+        Assert.Equal(PieceColor.Black, session.Mover);
+    }
+
+    [Fact]
+    public async Task TwoNewGamesBehindASearch_OnlyTheLastOneIsPlayed()
+    {
+        var rules = new FakeRules();
+        var engine = new FakeEngine { Hold = new TaskCompletionSource<MoveRequest?>(), Replies = { Move("g1f3") } };
+        await using var session = new GameSession(rules, () => engine);
+        Task thinking = session.StartAsync(Computer(PieceColor.Black));
+        await engine.Searching.Task;
+
+        Task a = session.StartAsync(Computer(PieceColor.Black));
+        Task b = session.StartAsync(Computer(PieceColor.White));
+        await Task.WhenAll(thinking, a, b);
+
+        Assert.Equal(PieceColor.White, session.Setup.PlayerColor);
+        Assert.Empty(rules.Played);
+        Assert.Equal(PieceColor.White, session.Mover);
+        Assert.Equal(1, engine.Searches);
+    }
+
+    [Fact]
+    public async Task AMoveAskedWhileANewGameStarts_IsRefused()
+    {
+        var rules = new FakeRules();
+        await using var session = new GameSession(rules, () => new FakeEngine());
+        await session.StartAsync(GameSetup.TwoPlayers);
+        var loading = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        rules.NewGameGate = loading.Task;
+
+        Task start = session.StartAsync(GameSetup.TwoPlayers);
+        bool played = await session.PlayAsync(Move("e2e4"));
+        loading.SetResult();
+        await start;
+
+        Assert.False(played);
+        Assert.Empty(rules.Played);
+        Assert.Equal(PieceColor.White, session.Mover);
+    }
+
+    [Fact]
+    public async Task AMoveFoundAsANewGameStarts_IsNotPlayedInIt()
+    {
+        var rules = new FakeRules();
+        var hold = new TaskCompletionSource<MoveRequest?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var engine = new FakeEngine { Hold = hold, IgnoreStop = true };
+        await using var session = new GameSession(rules, () => engine);
+        Task thinking = session.StartAsync(Computer(PieceColor.Black));
+        await engine.Searching.Task;
+
+        // The new game takes its number before its first await: whichever of the stop and the
+        // engine's answer lands first, the move found is the old game's.
+        Task restart = session.StartAsync(GameSetup.TwoPlayers);
+        hold.SetResult(Move("e2e4"));
+        await Task.WhenAll(thinking, restart);
+
+        Assert.Empty(rules.Played);
+        Assert.Equal(GameMode.TwoPlayers, session.Setup.Mode);
+    }
+
+    [Fact]
+    public async Task ASubscriberThatThrows_NeverLocksTheGame()
+    {
+        var rules = new FakeRules();
+        await using var session = new GameSession(rules, () => new FakeEngine());
+        bool fail = true;
+        session.Changed += () =>
+        {
+            if (fail)
+            {
+                fail = false;
+                throw new InvalidOperationException("render failed");
+            }
+        };
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => session.StartAsync(GameSetup.TwoPlayers));
+        await session.StartAsync(GameSetup.TwoPlayers);
+
+        Assert.Equal(PieceColor.White, session.Mover);
+    }
+
+    [Fact]
+    public async Task AnEngineThatDiesMidGame_IsReported_AndReplacedByTheNextGame()
+    {
+        var rules = new FakeRules();
+        var hold = new TaskCompletionSource<MoveRequest?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var dying = new FakeEngine { Hold = hold };
+        var fresh = new FakeEngine();
+        var engines = new Queue<FakeEngine>([dying, fresh]);
+        await using var session = new GameSession(rules, engines.Dequeue);
+        Task start = session.StartAsync(Computer(PieceColor.Black));
+        await dying.Searching.Task;
+
+        hold.SetException(new Microsoft.JSInterop.JSException("The chess engine stopped."));
+        await Assert.ThrowsAsync<Microsoft.JSInterop.JSException>(() => start);
+        await session.StartAsync(Computer(PieceColor.White));
+
+        Assert.True(dying.Disposed);
+        Assert.Equal(1, fresh.NewGames);
     }
 
     [Fact]
@@ -176,13 +311,27 @@ public sealed class GameSessionTests
 
         public string? RefusedMove { get; set; }
 
+        public bool FailNewGame { get; set; }
+
+        public Task? NewGameGate { get; set; }
+
         public bool Disposed { get; private set; }
 
-        public Task<GameSnapshot> NewGameAsync(string? fen = null, CancellationToken cancellationToken = default)
+        public async Task<GameSnapshot> NewGameAsync(string? fen = null, CancellationToken cancellationToken = default)
         {
+            if (NewGameGate is { } gate)
+            {
+                await gate;
+            }
+
+            if (FailNewGame)
+            {
+                throw new InvalidOperationException("The rules could not load.");
+            }
+
             NewGames++;
             _current = White;
-            return Task.FromResult(_current);
+            return _current;
         }
 
         public Task<GameSnapshot?> TryMoveAsync(MoveRequest move, CancellationToken cancellationToken = default)
@@ -218,6 +367,10 @@ public sealed class GameSessionTests
 
         public bool FailOnNewGame { get; set; }
 
+        public bool IgnoreStop { get; set; }
+
+        public int Searches { get; private set; }
+
         public bool Cancelled { get; private set; }
 
         public bool Disposed { get; private set; }
@@ -236,8 +389,11 @@ public sealed class GameSessionTests
         public async Task<MoveRequest?> BestMoveAsync(string fen, EngineLevel level, CancellationToken cancellationToken = default)
         {
             Levels.Add(level);
+            Searches++;
             Searching.TrySetResult();
-            if (Hold is null)
+            TaskCompletionSource<MoveRequest?>? hold = Hold;
+            Hold = null;
+            if (hold is null)
             {
                 MoveRequest? reply = Replies.Count > 0 ? Replies[0] : null;
                 if (reply is not null)
@@ -248,13 +404,17 @@ public sealed class GameSessionTests
                 return reply;
             }
 
-            // Like Stockfish: a stop request ends the search at once.
+            // Like Stockfish: a stop request ends the search at once (or, with IgnoreStop, the
+            // move it had already found comes back anyway).
             using CancellationTokenRegistration stop = cancellationToken.Register(() =>
             {
                 Cancelled = true;
-                Hold.TrySetCanceled(cancellationToken);
+                if (!IgnoreStop)
+                {
+                    hold.TrySetCanceled(cancellationToken);
+                }
             });
-            return await Hold.Task;
+            return await hold.Task;
         }
 
         public ValueTask DisposeAsync()

@@ -20,6 +20,8 @@ public sealed partial class ChessWindow : IAsyncDisposable
     private GameSession _session = default!;
     private NewGameChoice _lastChoice = NewGameChoice.Default;
     private bool _dialogOpen;
+    private bool _focusNewGameButton;
+    private ElementReference _newGameButton;
     private string? _error;
     private IStringLocalizer<Strings>? _localizer;
 
@@ -53,17 +55,32 @@ public sealed partial class ChessWindow : IAsyncDisposable
         if (firstRender)
         {
             await RunGameAsync(() => _session.StartAsync(GameSetup.TwoPlayers, AppContext.CancellationToken));
+
+            // Nothing renders after OnAfterRender on its own: show the first game, or why it failed.
+            StateHasChanged();
+            return;
+        }
+
+        if (_focusNewGameButton)
+        {
+            // Back from the dialog: the keyboard focus returns where it was.
+            _focusNewGameButton = false;
+            await _newGameButton.FocusAsync();
         }
     }
 
     private void OpenNewGameDialog() => _dialogOpen = true;
 
-    private void CloseNewGameDialog() => _dialogOpen = false;
+    private void CloseNewGameDialog()
+    {
+        _dialogOpen = false;
+        _focusNewGameButton = true;
+    }
 
     private Task StartNewGameAsync(NewGameChoice choice)
     {
         _lastChoice = choice;
-        _dialogOpen = false;
+        CloseNewGameDialog();
         GameSetup setup = choice.Mode == GameMode.AgainstComputer
             ? GameSetup.AgainstComputer(choice.Level, choice.Color, Random.Shared)
             : GameSetup.TwoPlayers;
@@ -86,6 +103,10 @@ public sealed partial class ChessWindow : IAsyncDisposable
         catch (OperationCanceledException) when (AppContext.CancellationToken.IsCancellationRequested)
         {
             // The window is closing.
+        }
+        catch (JSDisconnectedException)
+        {
+            // The page is going away: there is no one left to tell.
         }
         catch (Exception exception) when (exception is JSException or FormatException or InvalidOperationException)
         {

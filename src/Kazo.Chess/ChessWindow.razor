@@ -8,7 +8,8 @@
         <span class="chess-brand" aria-hidden="true">♞</span>
         <span class="chess-title">@L["AppTitle"]</span>
         <span class="toolbar-spacer"></span>
-        <button type="button" class="toolbar-button" disabled="@(Snapshot is null || _dialogOpen)" @onclick="OpenNewGameDialog">
+        <button type="button" class="toolbar-button" disabled="@(Snapshot is null || _dialogOpen)" @onclick="OpenNewGameDialog"
+                @ref="_newGameButton">
             @L["NewGame"]
         </button>
     </header>

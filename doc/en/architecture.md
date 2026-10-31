@@ -107,10 +107,27 @@ first game against the computer (1.8 MB). `chess-engine.js` only speaks UCI
 `go movetime`, `stop`) and queues the searches.
 
 `GameSession` sends every change of the game through one gate: a move and a new
-game never interleave. A new game while the computer thinks cancels its search
-(Stockfish stops at once); its late reply carries an older game number and is
-not played. An engine that failed to start is dropped, and the next game starts
-a fresh one.
+game never interleave. Each new game takes its number **before** waiting for
+the gate and cancels the running search (Stockfish stops at once): anything
+waiting behind the gate for an older game (a start, a move, the computer's
+turn) sees a newer number and gives up. Nothing of an old game reaches the new
+one.
+
+Failures:
+
+- every request to the worker has a **deadline** (20 s for the UCI handshake,
+  the thinking time plus 5 s for a search); a silent worker is ended and the
+  error shows, the window never freezes;
+- an engine that does not start is dropped and **one** fresh engine is tried;
+- a new game that fails **leaves the current game as it was** (the engine and
+  the rules are ready before the window switches games), and the computer takes
+  its turn again if it was thinking;
+- a worker that dies mid-game is reported; the next new game starts a fresh one;
+- a worker created after the window closed is ended at once.
+
+**Known limit**: Stockfish receives the position (`position fen`), not the move
+history. It therefore cannot see repetitions and may walk into a threefold
+repetition draw it would otherwise avoid.
 
 ### Entering moves
 
@@ -166,9 +183,9 @@ Applications menu ("All applications" on mobile).
 
 | Suite | What it covers |
 | --- | --- |
-| `tests/Kazo.Chess.Tests` | `Square`, `BoardPosition`, `MoveRequest`, `GameStatus`, snapshot reading (on real chess.js snapshots in `Fixtures/`, written by `tests/js/write-fixtures.mjs`), `ChessJsRules` (on a fake JS runtime: a failed new game keeps the current one) the whole board interaction, `GameSetup`, `GameSession` (with a fake engine: the computer's reply, a refused move, a new game while it thinks, an engine that fails to start) and `StockfishEngine` (fake worker: one start, UCI options, `stop` on cancellation). 126 tests. |
-| `tests/js` | The `chess-rules.js` module with chess.js: legal and illegal moves, mate, stalemate, promotion, insufficient material, fifty-move rule. |
-| `tests/e2e` | The app in the host, in Chromium: moves by click, by drag and by keyboard; fool's mate (board locked); promotion (cancelled with the button, then chosen with the keyboard, the focus on the picker); phone screen (Pixel 7) and touch; against Stockfish as Black (it opens, the player answers, it plays again). `CHESS_BASE_URL` reuses a host already running. |
+| `tests/Kazo.Chess.Tests` | `Square`, `BoardPosition`, `MoveRequest`, `GameStatus`, snapshot reading (on real chess.js snapshots in `Fixtures/`, written by `tests/js/write-fixtures.mjs`), `ChessJsRules` (on a fake JS runtime: a failed new game keeps the current one) the whole board interaction, `GameSetup`, `GameSession` (with a fake engine: the computer's reply, a refused move, a new game while it thinks, an engine that fails to start) and `StockfishEngine` (fake worker: one start, UCI options, `stop` on cancellation, token already cancelled, close during start); `GameSession` races: two overlapping new games, a move asked during a start, a move found as a new game starts, a failed start, a `Changed` subscriber that throws. 135 tests. |
+| `tests/js` | The `chess-rules.js` module with chess.js: legal and illegal moves, mate, stalemate, promotion, insufficient material, fifty-move rule. The `chess-engine.js` module with a fake worker: UCI order, search queue, `stop`, deadlines, worker error, `terminate`. 15 tests. |
+| `tests/e2e` | The app in the host, in Chromium: moves by click, by drag and by keyboard; fool's mate (board locked); promotion (cancelled with the button, then chosen with the keyboard, the focus on the picker); phone screen (Pixel 7) and touch; against Stockfish as Black (it opens, the player answers, it plays again); Escape closes the dialog and gives the focus back; a new game while Stockfish thinks (its move is not played). 7 runs. `CHESS_BASE_URL` reuses a host already running. |
 
 The CI (`.github/workflows/ci.yml`) runs all of it on every push and PR.
 
@@ -209,6 +226,9 @@ Work item 2 (`chess/2-engine`):
 - [x] "New game" dialog inside the window, board turned to the player.
 - [x] `GameSession`: the computer's replies, cancellation on a new game.
 - [x] C# tests (fake engine and fake worker) and end to end against Stockfish.
+- [x] Independent review: game number taken before the gate, worker deadlines,
+  a failed start leaves the current game alone, dialog focus and keyboard
+  (Escape, Tab, back to the button).
 
 Next in the plan: history, undo, flip the board, clock, `.pgn` files (see the
 [plan](plan.md)).

@@ -17,6 +17,7 @@ public sealed class StockfishEngine : IChessEngine
     private readonly SemaphoreSlim _start = new(1, 1);
     private IJSObjectReference? _module;
     private IJSObjectReference? _engine;
+    private bool _disposed;
 
     /// <summary>Creates the engine over a JavaScript runtime.</summary>
     /// <param name="javaScript">The browser's JavaScript runtime.</param>
@@ -38,6 +39,9 @@ public sealed class StockfishEngine : IChessEngine
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fen);
         IJSObjectReference engine = await StartAsync(cancellationToken);
+
+        // Already cancelled: no search at all (a stop sent before the go would let it run its full time).
+        cancellationToken.ThrowIfCancellationRequested();
 
         // A cancelled search is stopped in the worker (its bestmove then comes at once); the token
         // is not passed to the interop call, so the reply is still read and the queue stays in order.
@@ -72,29 +76,49 @@ public sealed class StockfishEngine : IChessEngine
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
+        _disposed = true;
         IJSObjectReference? engine = _engine;
         IJSObjectReference? module = _module;
         _engine = null;
         _module = null;
+        await TerminateAsync(engine);
+        await ReleaseAsync(module);
+    }
+
+    private static async ValueTask TerminateAsync(IJSObjectReference? engine)
+    {
+        if (engine is null)
+        {
+            return;
+        }
+
         try
         {
-            if (engine is not null)
-            {
-                await engine.InvokeVoidAsync("terminate");
-                await engine.DisposeAsync();
-            }
+            await engine.InvokeVoidAsync("terminate");
+        }
+        catch (Exception exception) when (exception is JSException or JSDisconnectedException)
+        {
+            // Already gone (the page, or a worker that failed): nothing left to end.
+        }
 
-            if (module is not null)
-            {
-                await module.DisposeAsync();
-            }
+        await ReleaseAsync(engine);
+    }
+
+    private static async ValueTask ReleaseAsync(IJSObjectReference? reference)
+    {
+        if (reference is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await reference.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {
             // The page is gone, and the worker with it.
         }
-
-        _start.Dispose();
     }
 
     private static async Task StopAsync(IJSObjectReference engine)
@@ -109,7 +133,9 @@ public sealed class StockfishEngine : IChessEngine
         }
     }
 
-    // One start at a time: two quick calls share the same worker.
+    // One start at a time: two quick calls share the same worker. The worker is created without the
+    // caller's token: a start the window gave up on still returns its worker, which is then ended
+    // here instead of living on unseen until the page unloads.
     private async Task<IJSObjectReference> StartAsync(CancellationToken cancellationToken)
     {
         if (_engine is { } running)
@@ -120,9 +146,18 @@ public sealed class StockfishEngine : IChessEngine
         await _start.WaitAsync(cancellationToken);
         try
         {
-            _module ??= await _javaScript.InvokeAsync<IJSObjectReference>("import", cancellationToken, ModulePath);
-            _engine ??= await _module.InvokeAsync<IJSObjectReference>("createEngine", cancellationToken);
-            return _engine;
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            _module ??= await _javaScript.InvokeAsync<IJSObjectReference>("import", ModulePath);
+            IJSObjectReference engine = _engine ?? await _module.InvokeAsync<IJSObjectReference>("createEngine");
+            if (_disposed)
+            {
+                await TerminateAsync(engine);
+                throw new ObjectDisposedException(nameof(StockfishEngine));
+            }
+
+            _engine = engine;
+            cancellationToken.ThrowIfCancellationRequested();
+            return engine;
         }
         finally
         {

@@ -68,6 +68,34 @@ public sealed class StockfishEngineTests
     }
 
     [Fact]
+    public async Task AnAlreadyCancelledSearch_NeverReachesTheWorker()
+    {
+        var js = new FakeRuntime();
+        await using var engine = new StockfishEngine(js);
+        await engine.NewGameAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => engine.BestMoveAsync(StartFen, EngineLevel.Easy, new CancellationToken(canceled: true)));
+
+        Assert.DoesNotContain("bestMove", js.Module.Worker.Calls.Select(call => call.Name));
+    }
+
+    [Fact]
+    public async Task AWorkerCreatedAfterTheEngineWasClosed_IsEndedAtOnce()
+    {
+        var js = new FakeRuntime();
+        var engine = new StockfishEngine(js);
+        var created = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        js.Module.Gate = created.Task;
+
+        Task start = engine.NewGameAsync();
+        await engine.DisposeAsync();
+        created.SetResult();
+
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => start);
+        Assert.Equal(["terminate"], js.Module.Worker.Calls.Select(call => call.Name));
+    }
+
+    [Fact]
     public async Task DisposeAsync_TerminatesTheWorker_EvenWhenThePageIsGone()
     {
         var js = new FakeRuntime();
@@ -126,14 +154,21 @@ public sealed class StockfishEngineTests
 
         public int Created { get; private set; }
 
+        public Task? Gate { get; set; }
+
         public ValueTask<TValue> InvokeAsync<TValue>(string identifier, object?[]? args) =>
             InvokeAsync<TValue>(identifier, CancellationToken.None, args);
 
-        public ValueTask<TValue> InvokeAsync<TValue>(string identifier, CancellationToken cancellationToken, object?[]? args)
+        public async ValueTask<TValue> InvokeAsync<TValue>(string identifier, CancellationToken cancellationToken, object?[]? args)
         {
             Assert.Equal("createEngine", identifier);
             Created++;
-            return ValueTask.FromResult((TValue)(object)Worker);
+            if (Gate is not null)
+            {
+                await Gate;
+            }
+
+            return (TValue)(object)Worker;
         }
 
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;

@@ -1,6 +1,8 @@
+using System.Runtime.ExceptionServices;
 using Kazo.Chess.Engine;
 using Kazo.Chess.Model;
 using Kazo.Chess.Rules;
+using Microsoft.JSInterop;
 
 namespace Kazo.Chess.Game;
 
@@ -10,9 +12,10 @@ namespace Kazo.Chess.Game;
 /// replies and keeps everything in order.
 /// </summary>
 /// <remarks>
-/// Every change of the game goes through one gate, so a move and a new game never interleave. A new
-/// game first cancels the computer's search (Stockfish stops at once), then takes the gate: the old
-/// game's late reply finds a newer generation and is dropped.
+/// Every change of the game goes through one gate, so a move and a new game never interleave. Each
+/// new game takes a generation number <em>before</em> waiting for the gate and cancels the computer's
+/// search: anything queued behind the gate for an older game (a start, a move, the computer's turn)
+/// sees a newer number once inside and gives up, so nothing of an old game reaches a new one.
 /// </remarks>
 public sealed class GameSession : IAsyncDisposable
 {
@@ -52,33 +55,58 @@ public sealed class GameSession : IAsyncDisposable
     /// <summary>Gets the side the person at the screen may move now, or <see langword="null"/> when no one may.</summary>
     public PieceColor? Mover => Snapshot is { } snapshot && !IsBusy && !IsThinking ? Setup.HumanMover(snapshot) : null;
 
-    /// <summary>Starts a new game, abandoning the current one (and the computer's search).</summary>
+    /// <summary>
+    /// Starts a new game, abandoning the current one (and the computer's search). When it fails (the
+    /// rules or the engine could not start), the current game stays exactly as it was.
+    /// </summary>
     /// <param name="setup">How the game is set up.</param>
     /// <param name="cancellationToken">Cancels the call (the window closing).</param>
     public async Task StartAsync(GameSetup setup, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(setup);
-        Interlocked.Increment(ref _generation);
+        int generation = Interlocked.Increment(ref _generation);
         await _search.CancelAsync();
 
         await _gate.WaitAsync(cancellationToken);
-        int generation = _generation;
-        _search.Dispose();
-        _search = new CancellationTokenSource();
+        ExceptionDispatchInfo? failure = null;
         try
         {
+            if (generation != Volatile.Read(ref _generation))
+            {
+                // A newer game was asked for while this one waited: it wins.
+                return;
+            }
+
+            _search.Dispose();
+            _search = new CancellationTokenSource();
             SetBusy(true);
-            Snapshot = await _rules.NewGameAsync(cancellationToken: cancellationToken);
-            Setup = setup;
+
+            // The engine first, then the rules: the window switches to the new game only once
+            // both are ready.
             if (setup.Mode == GameMode.AgainstComputer)
             {
                 await StartEngineAsync(cancellationToken);
             }
+
+            GameSnapshot snapshot = await _rules.NewGameAsync(cancellationToken: cancellationToken);
+            Snapshot = snapshot;
+            Setup = setup;
+        }
+        catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            failure = ExceptionDispatchInfo.Capture(exception);
         }
         finally
         {
-            SetBusy(false);
-            _gate.Release();
+            ReleaseGate(busy: false);
+        }
+
+        if (failure is not null)
+        {
+            // The current game goes on: its search was cancelled for nothing, so the computer
+            // takes its turn again (when it was its turn) before the failure is reported.
+            await ResumeAfterFailedStartAsync(generation, cancellationToken);
+            failure.Throw();
         }
 
         await ComputerTurnAsync(generation, cancellationToken);
@@ -96,11 +124,13 @@ public sealed class GameSession : IAsyncDisposable
             return false;
         }
 
+        int generation = Volatile.Read(ref _generation);
         await _gate.WaitAsync(cancellationToken);
-        int generation = _generation;
         try
         {
-            if (Mover is null)
+            // A new game came in while this move waited, or the turn changed: the move belongs to
+            // a position that is no longer on the board.
+            if (generation != Volatile.Read(ref _generation) || Mover is null)
             {
                 return false;
             }
@@ -116,8 +146,7 @@ public sealed class GameSession : IAsyncDisposable
         }
         finally
         {
-            SetBusy(false);
-            _gate.Release();
+            ReleaseGate(busy: false);
         }
 
         await ComputerTurnAsync(generation, cancellationToken);
@@ -127,69 +156,149 @@ public sealed class GameSession : IAsyncDisposable
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
+        Interlocked.Increment(ref _generation);
         await _search.CancelAsync();
-        if (_engine is not null)
-        {
-            await _engine.DisposeAsync();
-        }
-
-        await _rules.DisposeAsync();
-        _search.Dispose();
-    }
-
-    // An engine that failed to start (the worker could not load) is dropped, so the next game tries
-    // a fresh one instead of reusing a dead worker.
-    private async Task StartEngineAsync(CancellationToken cancellationToken)
-    {
-        _engine ??= _engineFactory();
         try
         {
-            await _engine.NewGameAsync(cancellationToken);
+            if (_engine is not null)
+            {
+                await _engine.DisposeAsync();
+            }
         }
-        catch (Exception) when (!cancellationToken.IsCancellationRequested)
+        finally
         {
-            IChessEngine failed = _engine;
             _engine = null;
-            await failed.DisposeAsync();
-            throw;
+            await _rules.DisposeAsync();
         }
     }
 
-    // The computer plays as long as it is its turn in this game. A new game (a newer generation)
-    // ends the loop: its search is cancelled and its late result is never applied.
+    private async Task ResumeAfterFailedStartAsync(int generation, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await ComputerTurnAsync(generation, cancellationToken);
+        }
+        catch (Exception exception) when (exception is JSException or InvalidOperationException)
+        {
+            // The engine went down with the failed start: the start's own failure is the one shown.
+        }
+    }
+
+    // An engine that cannot start (its worker died, or never answered) is dropped and one fresh
+    // engine is tried before giving up, so a dead worker never costs the player two new games.
+    private async Task StartEngineAsync(CancellationToken cancellationToken)
+    {
+        for (int attempt = 1; ; attempt++)
+        {
+            _engine ??= _engineFactory();
+            try
+            {
+                await _engine.NewGameAsync(cancellationToken);
+                return;
+            }
+            catch (Exception) when (!cancellationToken.IsCancellationRequested)
+            {
+                await DropEngineAsync();
+                if (attempt == 2)
+                {
+                    throw;
+                }
+            }
+        }
+    }
+
+    private async Task DropEngineAsync()
+    {
+        IChessEngine? engine = _engine;
+        _engine = null;
+        if (engine is not null)
+        {
+            try
+            {
+                await engine.DisposeAsync();
+            }
+            catch (Exception exception) when (exception is JSException or JSDisconnectedException)
+            {
+                // A dead worker may not even end cleanly; it is dropped all the same.
+            }
+        }
+    }
+
+    // The computer plays as long as it is its turn in this game. Everything it reads (position,
+    // setup, engine, search token) is read under the gate, after checking the game is still this
+    // one: a newer game cancels the search and makes the loop give up.
     private async Task ComputerTurnAsync(int generation, CancellationToken cancellationToken)
     {
-        while (Snapshot is { IsOver: false } snapshot && snapshot.Turn == Setup.ComputerColor && _engine is { } engine)
+        while (true)
         {
-            using var search = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _search.Token);
             await _gate.WaitAsync(cancellationToken);
             try
             {
-                if (generation != _generation)
+                if (generation != Volatile.Read(ref _generation)
+                    || Snapshot is not { IsOver: false } snapshot
+                    || snapshot.Turn != Setup.ComputerColor)
                 {
                     return;
                 }
 
+                IChessEngine engine = _engine
+                    ?? throw new InvalidOperationException("The computer has no engine to play with.");
+                using var search = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _search.Token);
                 SetThinking(true);
-                MoveRequest? move = await engine.BestMoveAsync(snapshot.Fen, Setup.Level, search.Token);
-                if (move is null || generation != _generation)
+                MoveRequest? move;
+                try
                 {
+                    move = await engine.BestMoveAsync(snapshot.Fen, Setup.Level, search.Token);
+                }
+                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+                {
+                    // A new game cancelled this search.
+                    return;
+                }
+                catch (Exception exception) when (exception is JSException or InvalidOperationException)
+                {
+                    // The worker died mid-game: the next new game starts a fresh one.
+                    await DropEngineAsync();
+                    throw;
+                }
+
+                if (generation != Volatile.Read(ref _generation))
+                {
+                    // A new game came in as the engine answered: the move belongs to the old one.
                     return;
                 }
 
-                Snapshot = await _rules.TryMoveAsync(move, cancellationToken)
-                    ?? throw new InvalidOperationException($"The rules refused the computer's move {move.Uci}.");
-            }
-            catch (OperationCanceledException) when (generation != _generation && !cancellationToken.IsCancellationRequested)
-            {
-                // A new game cancelled this search.
-                return;
+                MoveRequest found = move
+                    ?? throw new InvalidOperationException("The computer found no move in a game that is not over.");
+                Snapshot = await _rules.TryMoveAsync(found, cancellationToken)
+                    ?? throw new InvalidOperationException($"The rules refused the computer's move {found.Uci}.");
             }
             finally
             {
-                SetThinking(false);
-                _gate.Release();
+                ReleaseGate(thinking: false);
             }
+        }
+    }
+
+    // The gate is released whatever a Changed subscriber does: a renderer that throws must never
+    // lock the game for good.
+    private void ReleaseGate(bool? busy = null, bool? thinking = null)
+    {
+        try
+        {
+            if (busy is { } isBusy && IsBusy != isBusy)
+            {
+                SetBusy(isBusy);
+            }
+
+            if (thinking is { } isThinking && IsThinking != isThinking)
+            {
+                SetThinking(isThinking);
+            }
+        }
+        finally
+        {
+            _gate.Release();
         }
     }
 

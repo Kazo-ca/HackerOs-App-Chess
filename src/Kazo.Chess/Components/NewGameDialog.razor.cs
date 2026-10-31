@@ -29,7 +29,9 @@ public sealed partial class NewGameDialog
     private GameMode _mode;
     private EngineLevel _level;
     private ColorChoice _color;
-    private ElementReference _firstInput;
+    private ElementReference _twoPlayersInput;
+    private ElementReference _computerInput;
+    private ElementReference _startButton;
     private IStringLocalizer<Strings>? _localizer;
 
     /// <summary>Gets or sets the execution context of the window that hosts the dialog (cascaded by the OS).</summary>
@@ -64,9 +66,15 @@ public sealed partial class NewGameDialog
     {
         if (firstRender)
         {
-            await _firstInput.FocusAsync();
+            await FocusFirstAsync();
         }
     }
+
+    // The checked mode is where a keyboard player expects to land (and where arrows change it).
+    private async Task FocusFirstAsync() =>
+        await (_mode == GameMode.AgainstComputer ? _computerInput : _twoPlayersInput).FocusAsync();
+
+    private async Task FocusLastAsync() => await _startButton.FocusAsync();
 
     private Task StartAsync() => OnStart.InvokeAsync(new NewGameChoice(_mode, _level, _color));
 

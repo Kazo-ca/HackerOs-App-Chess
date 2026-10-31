@@ -159,3 +159,44 @@ test('against the computer as Black: Stockfish opens and answers', { timeout: 30
     assert.match(await page.locator(".move-count").innerText(), /Move 2/);
     await page.close();
 });
+
+test('the new game dialog closes on Escape and gives the focus back', { timeout: 300_000 }, async () => {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    await openChess(page, host.baseUrl);
+    const button = page.getByRole('button', { name: 'New game' });
+    await button.click();
+    const dialog = page.getByRole('dialog', { name: 'New game' });
+    await dialog.waitFor();
+    await page.waitForFunction(() => document.activeElement?.type === 'radio' && document.activeElement.checked);
+
+    await page.keyboard.press('Escape');
+    await dialog.waitFor({ state: 'detached' });
+    await page.waitForFunction(() => document.activeElement?.classList.contains('toolbar-button'));
+    await page.close();
+});
+
+test('a new game while Stockfish thinks drops its move', { timeout: 300_000 }, async () => {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    await openChess(page, host.baseUrl);
+    await page.getByRole('button', { name: 'New game' }).click();
+    let dialog = page.getByRole('dialog', { name: 'New game' });
+    await dialog.getByRole('radio', { name: 'Against the computer' }).check();
+    await dialog.getByRole('radio', { name: 'Expert' }).check();
+    await dialog.getByRole('radio', { name: 'Black', exact: true }).check();
+    await dialog.getByRole('button', { name: 'Start' }).click();
+    await page.getByText('The computer is thinking…').waitFor({ timeout: 60_000 });
+
+    // Expert thinks 1.5 s: start a game for two players before it answers.
+    await page.getByRole('button', { name: 'New game' }).click();
+    dialog = page.getByRole('dialog', { name: 'New game' });
+    await dialog.getByRole('radio', { name: 'Two players on this screen' }).check();
+    await dialog.getByRole('button', { name: 'Start' }).click();
+
+    await page.getByText('White to move').waitFor();
+    await page.waitForTimeout(2_500);
+    assert.equal(await status(page).innerText(), 'White to move');
+    assert.equal(await page.locator('.chess-board .piece').count(), 32);
+    assert.equal(await page.locator('.chess-board .square.last-move').count(), 0);
+    assert.equal(await page.locator('.board-svg').getAttribute('data-orientation'), 'white');
+    await page.close();
+});

@@ -1,8 +1,10 @@
 @using Kazo.Chess.Engine
 @using Kazo.Chess.Game
 
-<div class="dialog-backdrop" @onkeydown="OnKeyDownAsync">
-    <form class="new-game-dialog" role="dialog" aria-modal="true" aria-labelledby="@($"{_id}-title")"
+<div class="dialog-backdrop" @onkeydown="OnKeyDownAsync" @onkeydown:stopPropagation>
+    @* Focus guards: Tab past the last control comes back to the first, Shift+Tab the other way. *@
+    <span class="focus-guard" tabindex="0" @onfocus="FocusLastAsync"></span>
+    <form class="new-game-dialog" role="dialog" aria-modal="true" aria-labelledby="@($"{_id}-title")" tabindex="-1"
           @onsubmit="StartAsync" @onsubmit:preventDefault>
         <h2 id="@($"{_id}-title")" class="dialog-title">@L["NewGame"]</h2>
 
@@ -10,12 +12,12 @@
             <legend>@L["ModeLegend"]</legend>
             <label class="choice">
                 <input type="radio" name="@($"{_id}-mode")" checked="@(_mode == GameMode.TwoPlayers)"
-                       @ref="_firstInput" @onchange="() => _mode = GameMode.TwoPlayers" />
+                       @ref="_twoPlayersInput" @onchange="() => _mode = GameMode.TwoPlayers" />
                 <span>@L["ModeTwoPlayers"]</span>
             </label>
             <label class="choice">
                 <input type="radio" name="@($"{_id}-mode")" checked="@(_mode == GameMode.AgainstComputer)"
-                       @onchange="() => _mode = GameMode.AgainstComputer" />
+                       @ref="_computerInput" @onchange="() => _mode = GameMode.AgainstComputer" />
                 <span>@L["ModeComputer"]</span>
             </label>
         </fieldset>
@@ -58,7 +60,8 @@
 
         <div class="dialog-actions">
             <button type="button" class="dialog-button" @onclick="OnCancel">@L["Cancel"]</button>
-            <button type="submit" class="dialog-button primary">@L["Start"]</button>
+            <button type="submit" class="dialog-button primary" @ref="_startButton">@L["Start"]</button>
         </div>
     </form>
+    <span class="focus-guard" tabindex="0" @onfocus="FocusFirstAsync"></span>
 </div>
