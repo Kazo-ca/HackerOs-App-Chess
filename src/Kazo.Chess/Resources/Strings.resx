@@ -30,9 +30,6 @@
   <data name="LoadingRules" xml:space="preserve">
     <value>Loading the rules…</value>
   </data>
-  <data name="MoveCount" xml:space="preserve">
-    <value>Move {0}</value>
-  </data>
   <data name="NewGame" xml:space="preserve">
     <value>New game</value>
   </data>
@@ -170,5 +167,44 @@
   </data>
   <data name="GameFailed" xml:space="preserve">
     <value>The game could not continue: {0}</value>
+  </data>
+  <data name="Undo" xml:space="preserve">
+    <value>Undo move</value>
+  </data>
+  <data name="Flip" xml:space="preserve">
+    <value>Flip board</value>
+  </data>
+  <data name="MovesLabel" xml:space="preserve">
+    <value>Moves</value>
+  </data>
+  <data name="NoMoves" xml:space="preserve">
+    <value>No moves yet</value>
+  </data>
+  <data name="ClockLegend" xml:space="preserve">
+    <value>Clock</value>
+  </data>
+  <data name="ClockNone" xml:space="preserve">
+    <value>No clock</value>
+  </data>
+  <data name="ClockCustom" xml:space="preserve">
+    <value>Custom</value>
+  </data>
+  <data name="CustomMinutes" xml:space="preserve">
+    <value>Minutes per side</value>
+  </data>
+  <data name="CustomIncrement" xml:space="preserve">
+    <value>Seconds added per move</value>
+  </data>
+  <data name="ClockLabel" xml:space="preserve">
+    <value>{0} clock: {1}</value>
+  </data>
+  <data name="StatusTimeOut" xml:space="preserve">
+    <value>Out of time: {0} wins</value>
+  </data>
+  <data name="StatusTimeOutDraw" xml:space="preserve">
+    <value>Out of time, but no mating material left: draw</value>
+  </data>
+  <data name="LoadingEngine" xml:space="preserve">
+    <value>Starting the chess engine…</value>
   </data>
 </root>

@@ -19,4 +19,10 @@ public interface IChessRules : IAsyncDisposable
     /// <param name="cancellationToken">Cancels the call.</param>
     /// <returns>The new position, or <see langword="null"/> when the move is illegal (the position does not change).</returns>
     Task<GameSnapshot?> TryMoveAsync(MoveRequest move, CancellationToken cancellationToken = default);
+
+    /// <summary>Takes moves back.</summary>
+    /// <param name="plies">How many half-moves to take back (fewer when the game has fewer).</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    /// <returns>The position after taking them back.</returns>
+    Task<GameSnapshot> UndoAsync(int plies, CancellationToken cancellationToken = default);
 }

@@ -13,9 +13,9 @@ public interface IChessEngine : IAsyncDisposable
     Task NewGameAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Searches the move to play in a position.</summary>
-    /// <param name="fen">The position, side to move included.</param>
+    /// <param name="position">The position, as its start and the moves since.</param>
     /// <param name="level">How strong the engine plays.</param>
     /// <param name="cancellationToken">Stops the search early; the call then throws <see cref="OperationCanceledException"/>.</param>
     /// <returns>The move, or <see langword="null"/> when the position has none (mate or stalemate).</returns>
-    Task<MoveRequest?> BestMoveAsync(string fen, EngineLevel level, CancellationToken cancellationToken = default);
+    Task<MoveRequest?> BestMoveAsync(EnginePosition position, EngineLevel level, CancellationToken cancellationToken = default);
 }

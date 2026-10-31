@@ -35,7 +35,8 @@ public static class GameSnapshotJson
             dto.InCheck,
             OutcomeOf(dto),
             (dto.Moves ?? []).Select(ToLegalMove).ToArray(),
-            (dto.History ?? []).Select(ToPlayedMove).ToArray());
+            (dto.History ?? []).Select(ToPlayedMove).ToArray(),
+            dto.StartFen);
     }
 
     // chess.js reports each rule on its own; checkmate and stalemate win over the draw rules
@@ -60,7 +61,8 @@ public static class GameSnapshotJson
         Square.Parse(move.From ?? string.Empty),
         Square.Parse(move.To ?? string.Empty),
         move.San ?? string.Empty,
-        ParseColor(move.Color));
+        ParseColor(move.Color),
+        ParsePromotion(move.Promotion));
 
     private static PieceColor ParseColor(string? color) => color switch
     {
@@ -74,6 +76,8 @@ public static class GameSnapshotJson
 
     internal sealed class SnapshotDto
     {
+        public string? StartFen { get; set; }
+
         public string? Fen { get; set; }
 
         public string? Turn { get; set; }

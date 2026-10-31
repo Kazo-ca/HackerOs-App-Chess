@@ -30,9 +30,6 @@
   <data name="LoadingRules" xml:space="preserve">
     <value>Chargement des règles…</value>
   </data>
-  <data name="MoveCount" xml:space="preserve">
-    <value>Coup {0}</value>
-  </data>
   <data name="NewGame" xml:space="preserve">
     <value>Nouvelle partie</value>
   </data>
@@ -170,5 +167,44 @@
   </data>
   <data name="GameFailed" xml:space="preserve">
     <value>La partie n'a pas pu continuer : {0}</value>
+  </data>
+  <data name="Undo" xml:space="preserve">
+    <value>Annuler le coup</value>
+  </data>
+  <data name="Flip" xml:space="preserve">
+    <value>Retourner le plateau</value>
+  </data>
+  <data name="MovesLabel" xml:space="preserve">
+    <value>Coups</value>
+  </data>
+  <data name="NoMoves" xml:space="preserve">
+    <value>Aucun coup joué</value>
+  </data>
+  <data name="ClockLegend" xml:space="preserve">
+    <value>Pendule</value>
+  </data>
+  <data name="ClockNone" xml:space="preserve">
+    <value>Sans pendule</value>
+  </data>
+  <data name="ClockCustom" xml:space="preserve">
+    <value>Personnalisée</value>
+  </data>
+  <data name="CustomMinutes" xml:space="preserve">
+    <value>Minutes par joueur</value>
+  </data>
+  <data name="CustomIncrement" xml:space="preserve">
+    <value>Secondes ajoutées par coup</value>
+  </data>
+  <data name="ClockLabel" xml:space="preserve">
+    <value>Pendule des {0} : {1}</value>
+  </data>
+  <data name="StatusTimeOut" xml:space="preserve">
+    <value>Temps écoulé : les {0} gagnent</value>
+  </data>
+  <data name="StatusTimeOutDraw" xml:space="preserve">
+    <value>Temps écoulé, mais plus de matériel pour mater : nulle</value>
+  </data>
+  <data name="LoadingEngine" xml:space="preserve">
+    <value>Démarrage du moteur d'échecs…</value>
   </data>
 </root>

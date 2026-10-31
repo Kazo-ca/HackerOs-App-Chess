@@ -35,6 +35,14 @@ public sealed class GameStatusTests
         Assert.Equal(new GameStatus("StatusThreefoldRepetition", null), GameStatus.Of(snapshot));
     }
 
+    [Fact]
+    public void Of_ATimeOut_GivesTheGameToTheOpponent() =>
+        Assert.Equal(new GameStatus("StatusTimeOut", PieceColor.Black), GameStatus.Of(Fixture.Snapshot("start.json"), PieceColor.White));
+
+    [Fact]
+    public void Of_ATimeOutAgainstALoneKing_IsADraw() =>
+        Assert.Equal(new GameStatus("StatusTimeOutDraw", null), GameStatus.Of(Fixture.Snapshot("promotion.json"), PieceColor.White));
+
     private static GameSnapshot Rebuild(GameSnapshot snapshot, bool? inCheck = null, GameOutcome? outcome = null) =>
         new(snapshot.Fen, snapshot.Turn, inCheck ?? snapshot.InCheck, outcome ?? snapshot.Outcome, snapshot.LegalMoves, snapshot.History);
 }

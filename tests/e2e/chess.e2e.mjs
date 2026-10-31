@@ -147,7 +147,7 @@ test('against the computer as Black: Stockfish opens and answers', { timeout: 30
     // The computer plays White's first move and the board faces the player's side.
     await page.getByText('Black to move').waitFor({ timeout: 60_000 });
     assert.equal(await page.locator('.board-svg').getAttribute('data-orientation'), 'black');
-    assert.match(await page.locator('.players').innerText(), /Computer \(Beginner\)/);
+    assert.match(await page.locator('.side-panel').innerText(), /Computer \(Beginner\)/);
 
     // The knight to f6 is legal whatever White opened with; the computer then answers.
     const from = await squareCenter(page, 'g8', 'black');
@@ -156,7 +156,7 @@ test('against the computer as Black: Stockfish opens and answers', { timeout: 30
     await page.mouse.click(to.x, to.y);
     await pieceOn(page, 'f6').waitFor();
     await page.getByText('Black to move').waitFor({ timeout: 60_000 });
-    assert.match(await page.locator(".move-count").innerText(), /Move 2/);
+    assert.equal(await page.locator('.move-row').count(), 2);
     await page.close();
 });
 
@@ -198,5 +198,77 @@ test('a new game while Stockfish thinks drops its move', { timeout: 300_000 }, a
     assert.equal(await page.locator('.chess-board .piece').count(), 32);
     assert.equal(await page.locator('.chess-board .square.last-move').count(), 0);
     assert.equal(await page.locator('.board-svg').getAttribute('data-orientation'), 'white');
+    await page.close();
+});
+
+const playMoves = async (page, moves) => {
+    for (const [from, to] of moves) {
+        await click(page, from);
+        await click(page, to);
+        await pieceOn(page, to).waitFor();
+    }
+};
+
+test('undo takes a move back and the board flips', { timeout: 300_000 }, async () => {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    await openChess(page, host.baseUrl);
+    const undo = page.getByRole('button', { name: 'Undo move' });
+    assert.equal(await undo.isDisabled(), true);
+
+    await playMoves(page, [['e2', 'e4'], ['e7', 'e5']]);
+    assert.deepEqual(await page.locator('.move-row').allInnerTexts(), ['1.\ne4\ne5']);
+    await undo.click();
+    await pieceOn(page, 'e7').waitFor();
+    assert.equal(await status(page).innerText(), 'Black to move');
+    assert.equal(await pieceOn(page, 'e5').count(), 0);
+
+    await page.getByRole('button', { name: 'Flip board' }).click();
+    assert.equal(await page.locator('.board-svg').getAttribute('data-orientation'), 'black');
+    assert.equal(await page.getByRole('button', { name: 'Flip board' }).getAttribute('aria-pressed'), 'true');
+    await page.close();
+});
+
+test('undo against the computer takes its reply back too', { timeout: 300_000 }, async () => {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    await openChess(page, host.baseUrl);
+    await page.getByRole('button', { name: 'New game' }).click();
+    const dialog = page.getByRole('dialog', { name: 'New game' });
+    await dialog.getByRole('radio', { name: 'Against the computer' }).check();
+    await dialog.getByRole('radio', { name: 'Beginner' }).check();
+    await dialog.getByRole('radio', { name: 'White', exact: true }).check();
+    await dialog.getByRole('button', { name: 'Start' }).click();
+
+    // The engine starts first (the board waits for it), then White may move.
+    await page.locator('.chess-board image[data-square="e2"][data-movable="true"]').waitFor({ timeout: 60_000 });
+    await playMoves(page, [['e2', 'e4']]);
+    await page.waitForFunction(() => document.querySelectorAll('.move-row .move').length === 2, null, { timeout: 60_000 });
+    await page.getByRole('button', { name: 'Undo move' }).click();
+
+    await pieceOn(page, 'e2').waitFor();
+    await page.getByText('No moves yet').waitFor();
+    assert.equal(await status(page).innerText(), 'White to move');
+    await page.close();
+});
+
+test('a 5+0 clock starts after White\'s first move and runs for the side to move', { timeout: 300_000 }, async () => {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    await openChess(page, host.baseUrl);
+    await page.getByRole('button', { name: 'New game' }).click();
+    const dialog = page.getByRole('dialog', { name: 'New game' });
+    await dialog.getByRole('radio', { name: '5+0' }).check();
+    await dialog.getByRole('button', { name: 'Start' }).click();
+
+    const faces = page.getByRole('timer');
+    await page.waitForFunction(() => document.querySelectorAll('[role=timer]').length === 2);
+    assert.deepEqual(await faces.allInnerTexts(), ['5:00', '5:00']);
+
+    await playMoves(page, [['e2', 'e4']]);
+    await page.waitForTimeout(2_200);
+    // Black (top card) is thinking; White's first move was free.
+    const [black, white] = await faces.allInnerTexts();
+    assert.equal(white, '5:00');
+    assert.match(black, /^4:5\d$/);
+    assert.equal(await page.locator('.player-card.running .player-side').innerText(), 'Black');
+    assert.equal(await page.getByRole('button', { name: 'Undo move' }).isDisabled(), true);
     await page.close();
 });

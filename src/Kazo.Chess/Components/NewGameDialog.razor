@@ -1,3 +1,4 @@
+@using Kazo.Chess.Clock
 @using Kazo.Chess.Engine
 @using Kazo.Chess.Game
 
@@ -52,6 +53,35 @@
                 </div>
             </fieldset>
         }
+
+        <fieldset>
+            <legend>@L["ClockLegend"]</legend>
+            <div class="level-row">
+                @foreach (ClockChoice clock in Enum.GetValues<ClockChoice>())
+                {
+                    <label class="pill @(clock == _clock ? "active" : string.Empty)">
+                        <input type="radio" name="@($"{_id}-clock")" checked="@(clock == _clock)"
+                               @onchange="() => _clock = clock" />
+                        <span>@ClockName(clock)</span>
+                    </label>
+                }
+            </div>
+            @if (_clock == ClockChoice.Custom)
+            {
+                <div class="custom-clock">
+                    <label>
+                        <span>@L["CustomMinutes"]</span>
+                        <input type="number" min="@TimeControl.MinMinutes" max="@TimeControl.MaxMinutes" step="1"
+                               @bind="CustomMinutes" />
+                    </label>
+                    <label>
+                        <span>@L["CustomIncrement"]</span>
+                        <input type="number" min="0" max="@TimeControl.MaxIncrementSeconds" step="1"
+                               @bind="CustomIncrement" />
+                    </label>
+                </div>
+            }
+        </fieldset>
 
         @if (AbandonsGame)
         {

@@ -49,7 +49,7 @@ test('the handshake then a search send UCI in order and return the bestmove line
     const worker = ScriptedWorker.last;
 
     await engine.newGame();
-    const line = await engine.bestMove('8/8/8/8/8/8/8/K6k w - - 0 1', 5, 100);
+    const line = await engine.bestMove('position fen 8/8/8/8/8/8/8/K6k w - - 0 1', 5, 100);
 
     assert.equal(line, 'bestmove e2e4 ponder e7e5');
     assert.deepEqual(worker.received, [
@@ -62,7 +62,7 @@ test('two searches asked at once run one after the other', async () => {
     const engine = await createEngine({ workerUrl: 'fake.js' });
     const worker = ScriptedWorker.last;
 
-    const [first, second] = await Promise.all([engine.bestMove('A', 0, 10), engine.bestMove('B', 20, 10)]);
+    const [first, second] = await Promise.all([engine.bestMove('position fen A', 0, 10), engine.bestMove('position fen B', 20, 10)]);
 
     assert.equal(first, second);
     const positions = worker.received.filter(command => command.startsWith('position'));

@@ -111,10 +111,84 @@
 }
 
 .side-panel {
-    width: 220px;
+    width: 240px;
+    min-height: 0;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 10px;
+}
+
+/* The move list takes the panel's spare height; it scrolls inside. */
+.side-panel ::deep .move-list-scroller {
+    flex: 1 1 auto;
+}
+
+/* Side modifiers are "side-white" and "side-black": the OS stylesheet already gives meaning to
+   plain "white" and "black" classes. */
+.toolbar-button.icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.toolbar-button.icon[aria-pressed="true"] {
+    border-color: var(--hos-accent, #42d392);
+    color: var(--hos-text-accent, var(--hos-accent, #42d392));
+}
+
+.player-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border: 1px solid var(--hos-border-subtle, var(--hos-border, #30363d));
+    border-radius: var(--hos-radius-md, 6px);
+    background: var(--hos-card-bg, var(--hos-bg-surface, #161b22));
+    transition: border-color var(--hos-transition-fast, 120ms), box-shadow var(--hos-transition-fast, 120ms);
+}
+
+.player-card.running {
+    border-color: var(--hos-accent, #42d392);
+    box-shadow: 0 0 12px var(--hos-accent-glow, transparent);
+}
+
+.player-name {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.2;
+}
+
+.player-side {
+    font-weight: 600;
+}
+
+.player-who {
+    color: var(--hos-text-secondary, #c9d1d9);
+    font-size: 0.85rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.clock-face {
+    padding: 2px 8px;
+    border-radius: var(--hos-radius-sm, 4px);
+    background: var(--hos-bg-base, #0d1117);
+    font-family: var(--hos-font-mono, 'Consolas', monospace);
+    font-size: 1.15rem;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+}
+
+.player-card.running .clock-face {
+    color: var(--hos-text-accent, var(--hos-accent, #42d392));
+}
+
+.clock-face.low {
+    color: var(--hos-error, #f85149);
+    background: color-mix(in srgb, var(--hos-error, #f85149) 14%, var(--hos-bg-base, #0d1117));
 }
 
 .status-card {
@@ -144,37 +218,12 @@
     vertical-align: middle;
 }
 
-.side-token.white {
+.side-token.side-white {
     background: #f3f1ea;
 }
 
-.side-token.black {
+.side-token.side-black {
     background: #2b2f36;
-}
-
-.players {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 6px 12px;
-    margin: 0;
-    padding: 12px 14px;
-    background: var(--hos-bg-surface-dim, transparent);
-    border: 1px solid var(--hos-border-subtle, var(--hos-border, #30363d));
-    border-radius: var(--hos-radius-md, 6px);
-    font-size: 0.9rem;
-}
-
-.players dt {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 600;
-}
-
-.players dd {
-    margin: 0;
-    color: var(--hos-text-secondary, #c9d1d9);
-    text-align: end;
 }
 
 .thinking {
@@ -207,20 +256,13 @@
     font-size: 0.85rem;
 }
 
-.move-count {
-    margin: 0;
-    color: var(--hos-text-muted, #8b949e);
-    font-family: var(--hos-font-mono, 'Consolas', monospace);
-    font-size: 0.85rem;
-}
-
 /* Narrow window or phone: the panel goes under the board. */
 @container chess-window (max-width: 620px) {
     .chess-main {
         flex-direction: column;
         justify-content: center;
-        gap: 10px;
-        padding: 10px;
+        gap: 8px;
+        padding: 8px;
     }
 
     /* As tall as it is wide, so the panel sits right under the board; it shrinks on a short screen. */
@@ -232,16 +274,16 @@
 
     .side-panel {
         width: auto;
-        flex-direction: row;
-        flex-wrap: wrap;
-        align-items: stretch;
+        gap: 8px;
     }
 
-    .status-card {
-        flex: 1 1 100%;
+    /* A phone keeps the newest moves in a short strip. */
+    .side-panel ::deep .move-list-scroller {
+        max-height: 5.5em;
     }
 
-    .players {
-        flex: 1;
+    /* Icons only: the names stay as tooltips and accessible labels. */
+    .toolbar-button .label {
+        display: none;
     }
 }

@@ -50,7 +50,9 @@ waits for the OS to serve the `wwwroot/` files of installed apps
 | `Components/NewGameDialog.razor` (+ `.cs`, `.css`) | The "New game" dialog, inside the window: two players or against the computer, level, colour. It replaces a confirmation box: it says when the current game will be abandoned. |
 | `Game/GameSetup.cs` | How the game is set up: mode, level, the player's colour; side shown at the bottom; who may move. |
 | `Game/GameSession.cs` | One game: the rules, the computer when it plays, the turn. Plays the computer's reply after each of the player's moves. |
-| `Engine/` | `EngineLevel` (5 levels), `IChessEngine`, `StockfishEngine` (stockfish.js through JS interop, `bestmove` reading). |
+| `Engine/` | `EngineLevel` (5 levels), `IChessEngine`, `EnginePosition` (start + moves), `StockfishEngine` (stockfish.js through JS interop, `bestmove` reading). |
+| `Clock/` | `TimeControl` (5+0, 10+0, 15+10, custom), `ChessClock` (over a `TimeProvider`), `ClockFormat` (the face of a real clock). |
+| `Components/MoveList.razor` | The score sheet: moves in pairs, the last one highlighted. |
 | `Components/ChessBoard.razor` (+ `.cs`, `.css`, `.js`) | The SVG board. It knows no rule: it draws the snapshot and turns mouse, touch and keyboard into `MoveRequest`s. |
 | `Components/SvgText.cs` | An SVG `<text>` element (Razor reserves the `<text>` tag). |
 | `Interaction/BoardInteraction.cs` | The player's hand over the board, immutable: selected piece, keyboard cursor, pending promotion. |
@@ -125,9 +127,37 @@ Failures:
 - a worker that dies mid-game is reported; the next new game starts a fresh one;
 - a worker created after the window closed is ended at once.
 
-**Known limit**: Stockfish receives the position (`position fen`), not the move
-history. It therefore cannot see repetitions and may walk into a threefold
-repetition draw it would otherwise avoid.
+Since work item 3, Stockfish receives the start position and every move (see
+above): it sees repetitions.
+
+### History, undo, flip, clock
+
+- **Score sheet**: moves in pairs (`1. e4 e5`), the last one highlighted; the
+  list scrolls by itself to keep the last move in view (no script,
+  `flex-direction: column-reverse`).
+- **Undo move**: one move between two players; against the computer, its reply
+  too, so it is the player's turn again. Disabled before the player's first
+  move, while the computer thinks and **with a clock** (undoing would hand time
+  back). chess.js takes the moves back (`undo`).
+- **Flip board**: until the next game.
+- **Clock** (Q32): none, 5+0, 10+0, 15+10 or custom (1 to 180 min, 0 to 60 s of
+  increment).
+
+  | Rule | Behaviour |
+  | --- | --- |
+  | Start | After White's first move (free, as on online servers). |
+  | Increment | Added to a side after each of its timed moves. |
+  | Display | `1:05:00`, `4:59`, then tenths below ten seconds (`9.4`); the running clock is lit, red below ten seconds. |
+  | Out of time | That side loses; draw if the opponent has only its king. The computer's search stops if it is the computer. |
+  | End of game | The clock stops on mate, stalemate or a draw. |
+  | Flag during the move | If time runs out while the move is being played, time wins, with no increment. |
+  | "New game" dialog | The clock keeps running, as a real one does: opening the dialog does not pause the game. |
+
+  `ChessClock` reads the time from a `TimeProvider`: it measures real elapsed
+  time (a slow render steals no seconds) and the tests move time by hand. The
+  window redraws the clock every tenth of a second, and only while it runs.
+- **Stockfish sees the game**: it receives the start position and every move
+  (`position fen <start> moves e2e4 e7e5 …`), hence the repetitions.
 
 ### Entering moves
 
@@ -183,23 +213,23 @@ Applications menu ("All applications" on mobile).
 
 | Suite | What it covers |
 | --- | --- |
-| `tests/Kazo.Chess.Tests` | `Square`, `BoardPosition`, `MoveRequest`, `GameStatus`, snapshot reading (on real chess.js snapshots in `Fixtures/`, written by `tests/js/write-fixtures.mjs`), `ChessJsRules` (on a fake JS runtime: a failed new game keeps the current one) the whole board interaction, `GameSetup`, `GameSession` (with a fake engine: the computer's reply, a refused move, a new game while it thinks, an engine that fails to start) and `StockfishEngine` (fake worker: one start, UCI options, `stop` on cancellation, token already cancelled, close during start); `GameSession` races: two overlapping new games, a move asked during a start, a move found as a new game starts, a failed start, a `Changed` subscriber that throws. 135 tests. |
-| `tests/js` | The `chess-rules.js` module with chess.js: legal and illegal moves, mate, stalemate, promotion, insufficient material, fifty-move rule. The `chess-engine.js` module with a fake worker: UCI order, search queue, `stop`, deadlines, worker error, `terminate`. 15 tests. |
-| `tests/e2e` | The app in the host, in Chromium: moves by click, by drag and by keyboard; fool's mate (board locked); promotion (cancelled with the button, then chosen with the keyboard, the focus on the picker); phone screen (Pixel 7) and touch; against Stockfish as Black (it opens, the player answers, it plays again); Escape closes the dialog and gives the focus back; a new game while Stockfish thinks (its move is not played). 7 runs. `CHESS_BASE_URL` reuses a host already running. |
+| `tests/Kazo.Chess.Tests` | `Square`, `BoardPosition`, `MoveRequest`, `GameStatus`, snapshot reading (on real chess.js snapshots in `Fixtures/`, written by `tests/js/write-fixtures.mjs`), `ChessJsRules` (on a fake JS runtime: a failed new game keeps the current one) the whole board interaction, `GameSetup`, `GameSession` (with a fake engine: the computer's reply, a refused move, a new game while it thinks, an engine that fails to start) and `StockfishEngine` (fake worker: one start, UCI options, `stop` on cancellation, token already cancelled, close during start); `GameSession` races: two overlapping new games, a move asked during a start, a move found as a new game starts, a failed start, a `Changed` subscriber that throws; the clock (on a fake `TimeProvider`), time-out, undo, the position sent to the engine. 177 tests. |
+| `tests/js` | The `chess-rules.js` module with chess.js: legal and illegal moves, mate, stalemate, promotion, insufficient material, fifty-move rule. The `chess-engine.js` module with a fake worker: UCI order, search queue, `stop`, deadlines, worker error, `terminate`. Undo, start position, promotion in the history. 17 tests. |
+| `tests/e2e` | The app in the host, in Chromium: moves by click, by drag and by keyboard; fool's mate (board locked); promotion (cancelled with the button, then chosen with the keyboard, the focus on the picker); phone screen (Pixel 7) and touch; against Stockfish as Black (it opens, the player answers, it plays again); Escape closes the dialog and gives the focus back; a new game while Stockfish thinks (its move is not played); undo and flip between two players, undo against the computer, a 5+0 clock. 10 runs. `CHESS_BASE_URL` reuses a host already running. |
 
 The CI (`.github/workflows/ci.yml`) runs all of it on every push and PR.
 
 ## Decisions taken during the work item
 
-- **Id and publisher**: `ca.kazo.chess` and `pub.kazo` (question asked to
-  Benoit, can change until the first `v1.0.0` tag).
+- **Id and publisher**: `ca.kazo.chess` and `pub.kazo` (confirmed by Benoit on
+  2026-10-31).
 - **Piece set**: "celtic" (MIT). Among the free sets lichess ships, only
   "celtic", "spatial", "fantasy" (MIT) and "rhosgfx" (CC0) meet decision Q15;
   "celtic" is the most readable and fits the gothic look.
 - **Draws by threefold repetition and the fifty-move rule**: the game stops by
-  itself, as chess.js reports it (`isDraw()`). Under FIDE rules these two draws
-  are claimed; only fivefold repetition and the 75-move rule are automatic.
-  Question asked to Benoit.
+  itself, as chess.js reports it (`isDraw()`) and as on chess.com. Under FIDE
+  rules these draws are claimed; Benoit chose the automatic stop on
+  2026-10-31.
 - **Errors**: an error of the rules (JavaScript) shows in the panel and the
   game stays as it was; if the board script does not load, the keyboard still
   plays.
@@ -230,5 +260,13 @@ Work item 2 (`chess/2-engine`):
   a failed start leaves the current game alone, dialog focus and keyboard
   (Escape, Tab, back to the button).
 
-Next in the plan: history, undo, flip the board, clock, `.pgn` files (see the
+Work item 3 (`chess/3-history-and-clock`):
+
+- [x] Score sheet, undo move, flip board.
+- [x] Clock: none, 5+0, 10+0, 15+10, custom; out of time.
+- [x] Stockfish receives the start and every move.
+- [x] C# (clock on a fake `TimeProvider`), node and end-to-end tests.
+
+Next in the plan: `.pgn` files (save, open, file association), then the move to
+the `hackeros-solution` template and the Store release (see the
 [plan](plan.md)).

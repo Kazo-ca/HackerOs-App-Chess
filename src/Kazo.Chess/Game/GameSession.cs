@@ -1,4 +1,5 @@
 using System.Runtime.ExceptionServices;
+using Kazo.Chess.Clock;
 using Kazo.Chess.Engine;
 using Kazo.Chess.Model;
 using Kazo.Chess.Rules;
@@ -21,6 +22,7 @@ public sealed class GameSession : IAsyncDisposable
 {
     private readonly IChessRules _rules;
     private readonly Func<IChessEngine> _engineFactory;
+    private readonly TimeProvider _time;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private IChessEngine? _engine;
     private CancellationTokenSource _search = new();
@@ -29,12 +31,14 @@ public sealed class GameSession : IAsyncDisposable
     /// <summary>Creates a session.</summary>
     /// <param name="rules">The rules of the game.</param>
     /// <param name="engineFactory">Creates the computer opponent the first time a game needs it.</param>
-    public GameSession(IChessRules rules, Func<IChessEngine> engineFactory)
+    /// <param name="time">The clock's source of time; the system's when <see langword="null"/>.</param>
+    public GameSession(IChessRules rules, Func<IChessEngine> engineFactory, TimeProvider? time = null)
     {
         ArgumentNullException.ThrowIfNull(rules);
         ArgumentNullException.ThrowIfNull(engineFactory);
         _rules = rules;
         _engineFactory = engineFactory;
+        _time = time ?? TimeProvider.System;
     }
 
     /// <summary>Raised after every visible change (position, busy, thinking), for the window to render.</summary>
@@ -52,8 +56,34 @@ public sealed class GameSession : IAsyncDisposable
     /// <summary>Gets whether the computer is searching its move.</summary>
     public bool IsThinking { get; private set; }
 
+    /// <summary>Gets whether the computer's engine is being started (its first download takes a moment).</summary>
+    public bool IsLoadingEngine { get; private set; }
+
+    /// <summary>Gets the game's clock, or <see langword="null"/> for a game without one.</summary>
+    public ChessClock? Clock { get; private set; }
+
+    /// <summary>Gets the side whose time ran out, or <see langword="null"/>.</summary>
+    public PieceColor? TimedOut { get; private set; }
+
+    /// <summary>Gets whether the game is over, on the board or on the clock.</summary>
+    public bool IsOver => Snapshot?.IsOver == true || TimedOut is not null;
+
     /// <summary>Gets the side the person at the screen may move now, or <see langword="null"/> when no one may.</summary>
-    public PieceColor? Mover => Snapshot is { } snapshot && !IsBusy && !IsThinking ? Setup.HumanMover(snapshot) : null;
+    public PieceColor? Mover => Snapshot is { } snapshot && !IsBusy && !IsThinking && TimedOut is null
+        ? Setup.HumanMover(snapshot)
+        : null;
+
+    /// <summary>
+    /// Gets whether the player may take a move back: not with a clock (it would hand time back),
+    /// not while something runs, and against the computer only once the player has moved.
+    /// </summary>
+    public bool CanUndo =>
+        Clock is null
+        && Snapshot is { History.Count: > 0 } snapshot
+        && !IsBusy
+        && !IsThinking
+        && (snapshot.IsOver || Mover is not null)
+        && (Setup.Mode == GameMode.TwoPlayers || snapshot.History.Any(move => move.Color == Setup.PlayerColor));
 
     /// <summary>
     /// Starts a new game, abandoning the current one (and the computer's search). When it fails (the
@@ -91,6 +121,8 @@ public sealed class GameSession : IAsyncDisposable
             GameSnapshot snapshot = await _rules.NewGameAsync(cancellationToken: cancellationToken);
             Snapshot = snapshot;
             Setup = setup;
+            Clock = setup.Clock is { } control ? new ChessClock(control, _time) : null;
+            TimedOut = null;
         }
         catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
         {
@@ -128,9 +160,9 @@ public sealed class GameSession : IAsyncDisposable
         await _gate.WaitAsync(cancellationToken);
         try
         {
-            // A new game came in while this move waited, or the turn changed: the move belongs to
-            // a position that is no longer on the board.
-            if (generation != Volatile.Read(ref _generation) || Mover is null)
+            // A new game came in while this move waited, the turn changed, or the player's flag
+            // fell before the move: the move belongs to a position that is no longer playable.
+            if (generation != Volatile.Read(ref _generation) || CheckTimeCore() || Mover is not { } mover)
             {
                 return false;
             }
@@ -143,6 +175,7 @@ public sealed class GameSession : IAsyncDisposable
             }
 
             Snapshot = next;
+            PressClock(mover);
         }
         finally
         {
@@ -150,6 +183,80 @@ public sealed class GameSession : IAsyncDisposable
         }
 
         await ComputerTurnAsync(generation, cancellationToken);
+        return true;
+    }
+
+    /// <summary>
+    /// Takes the player's last move back: one move between two players; against the computer, its
+    /// reply too, so it is the player's turn again.
+    /// </summary>
+    /// <param name="cancellationToken">Cancels the call (the window closing).</param>
+    /// <returns><see langword="true"/> when moves were taken back.</returns>
+    public async Task<bool> UndoAsync(CancellationToken cancellationToken = default)
+    {
+        if (!CanUndo)
+        {
+            return false;
+        }
+
+        int generation = Volatile.Read(ref _generation);
+        await _gate.WaitAsync(cancellationToken);
+        try
+        {
+            if (generation != Volatile.Read(ref _generation) || !CanUndo || Snapshot is not { } snapshot)
+            {
+                return false;
+            }
+
+            bool computerReplied = Setup.Mode == GameMode.AgainstComputer
+                && snapshot.LastMove?.Color == Setup.ComputerColor
+                && snapshot.History.Count >= 2;
+            SetBusy(true);
+            Snapshot = await _rules.UndoAsync(computerReplied ? 2 : 1, cancellationToken);
+        }
+        finally
+        {
+            ReleaseGate(busy: false);
+        }
+
+        await ComputerTurnAsync(generation, cancellationToken);
+        return true;
+    }
+
+    /// <summary>
+    /// Looks at the clock: when a side's time is up, the game ends on time (and the computer's
+    /// search, if it was thinking, stops). The window calls it on every tick of its display.
+    /// </summary>
+    /// <returns><see langword="true"/> when the game is over on time.</returns>
+    public bool CheckTime()
+    {
+        // While a move or a new game is processed, that work checks the clock itself; looking here
+        // could end a game being replaced and cancel the new game's search.
+        return IsBusy ? TimedOut is not null : CheckTimeCore();
+    }
+
+    // Ends the game on time when a flag fell. Only the computer's own search is stopped: the
+    // search token may already belong to a newer game.
+    private bool CheckTimeCore()
+    {
+        if (TimedOut is not null)
+        {
+            return true;
+        }
+
+        if (Clock?.Flagged is not { } flagged)
+        {
+            return false;
+        }
+
+        TimedOut = flagged;
+        Clock.Stop();
+        if (IsThinking)
+        {
+            _search.Cancel();
+        }
+
+        Changed?.Invoke();
         return true;
     }
 
@@ -187,6 +294,20 @@ public sealed class GameSession : IAsyncDisposable
     // An engine that cannot start (its worker died, or never answered) is dropped and one fresh
     // engine is tried before giving up, so a dead worker never costs the player two new games.
     private async Task StartEngineAsync(CancellationToken cancellationToken)
+    {
+        IsLoadingEngine = true;
+        Changed?.Invoke();
+        try
+        {
+            await StartEngineOnceOrTwiceAsync(cancellationToken);
+        }
+        finally
+        {
+            IsLoadingEngine = false;
+        }
+    }
+
+    private async Task StartEngineOnceOrTwiceAsync(CancellationToken cancellationToken)
     {
         for (int attempt = 1; ; attempt++)
         {
@@ -235,6 +356,7 @@ public sealed class GameSession : IAsyncDisposable
             try
             {
                 if (generation != Volatile.Read(ref _generation)
+                    || CheckTimeCore()
                     || Snapshot is not { IsOver: false } snapshot
                     || snapshot.Turn != Setup.ComputerColor)
                 {
@@ -248,7 +370,7 @@ public sealed class GameSession : IAsyncDisposable
                 MoveRequest? move;
                 try
                 {
-                    move = await engine.BestMoveAsync(snapshot.Fen, Setup.Level, search.Token);
+                    move = await engine.BestMoveAsync(EnginePosition.Of(snapshot), Setup.Level, search.Token);
                 }
                 catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
                 {
@@ -262,9 +384,10 @@ public sealed class GameSession : IAsyncDisposable
                     throw;
                 }
 
-                if (generation != Volatile.Read(ref _generation))
+                if (generation != Volatile.Read(ref _generation) || CheckTimeCore())
                 {
-                    // A new game came in as the engine answered: the move belongs to the old one.
+                    // A new game came in as the engine answered (the move belongs to the old one),
+                    // or the computer's own time ran out while it thought.
                     return;
                 }
 
@@ -272,11 +395,30 @@ public sealed class GameSession : IAsyncDisposable
                     ?? throw new InvalidOperationException("The computer found no move in a game that is not over.");
                 Snapshot = await _rules.TryMoveAsync(found, cancellationToken)
                     ?? throw new InvalidOperationException($"The rules refused the computer's move {found.Uci}.");
+                PressClock(snapshot.Turn);
             }
             finally
             {
                 ReleaseGate(thinking: false);
             }
+        }
+    }
+
+    // After a move: the clock passes to the other side, or stops when the move ended the game. A
+    // flag that fell while the move was being played wins: the time ran out before the press.
+    private void PressClock(PieceColor mover)
+    {
+        if (Clock?.Flagged is not null)
+        {
+            CheckTimeCore();
+        }
+        else if (Snapshot is { IsOver: true })
+        {
+            Clock?.Stop();
+        }
+        else
+        {
+            Clock?.Press(mover);
         }
     }
 

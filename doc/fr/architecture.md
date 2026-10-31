@@ -50,7 +50,9 @@ le Hack Store attend que l'OS serve les fichiers `wwwroot/` des apps installées
 | `Components/NewGameDialog.razor` (+ `.cs`, `.css`) | Le dialogue « Nouvelle partie », dans la fenêtre : deux joueurs ou contre l'ordinateur, niveau, couleur. Il remplace une boîte de confirmation : il dit quand la partie en cours sera abandonnée. |
 | `Game/GameSetup.cs` | Comment la partie est montée : mode, niveau, couleur du joueur ; côté affiché en bas ; qui peut bouger. |
 | `Game/GameSession.cs` | Une partie : les règles, l'ordinateur quand il joue, le tour. Joue la réponse de l'ordinateur après chaque coup du joueur. |
-| `Engine/` | `EngineLevel` (5 niveaux), `IChessEngine`, `StockfishEngine` (stockfish.js par JS interop, lecture de `bestmove`). |
+| `Engine/` | `EngineLevel` (5 niveaux), `IChessEngine`, `EnginePosition` (départ + coups), `StockfishEngine` (stockfish.js par JS interop, lecture de `bestmove`). |
+| `Clock/` | `TimeControl` (5+0, 10+0, 15+10, personnalisée), `ChessClock` (sur un `TimeProvider`), `ClockFormat` (affichage d'une vraie pendule). |
+| `Components/MoveList.razor` | La feuille de partie : les coups par paires, le dernier en évidence. |
 | `Components/ChessBoard.razor` (+ `.cs`, `.css`, `.js`) | Le plateau SVG. Il ne connaît aucune règle : il dessine le snapshot et transforme souris, toucher et clavier en `MoveRequest`. |
 | `Components/SvgText.cs` | Un élément SVG `<text>` (Razor réserve la balise `<text>`). |
 | `Interaction/BoardInteraction.cs` | La main du joueur au-dessus du plateau, immuable : pièce choisie, curseur clavier, promotion en attente. |
@@ -128,9 +130,38 @@ Pannes :
   suivante en lance un neuf ;
 - un worker créé après la fermeture de la fenêtre est arrêté aussitôt.
 
-**Limite connue** : Stockfish reçoit la position (`position fen`), pas
-l'historique des coups. Il ne voit donc pas les répétitions et peut aller vers
-une nulle par triple répétition qu'il éviterait autrement.
+Depuis le chantier 3, Stockfish reçoit la position de départ et tous les coups
+(voir plus haut) : il voit les répétitions.
+
+### Historique, annuler, retourner, pendule
+
+- **Feuille de partie** : les coups par paires (`1. e4 e5`), le dernier en
+  évidence ; la liste défile seule pour garder le dernier coup en vue (sans
+  script, par `flex-direction: column-reverse`).
+- **Annuler le coup** : un coup entre deux joueurs ; contre l'ordinateur, sa
+  réponse aussi, pour revenir au tour du joueur. Désactivé avant le premier coup
+  du joueur, pendant que l'ordinateur réfléchit et **avec une pendule** (annuler
+  rendrait du temps). chess.js défait les coups (`undo`).
+- **Retourner le plateau** : jusqu'à la partie suivante.
+- **Pendule** (Q32) : sans, 5+0, 10+0, 15+10 ou personnalisée (1 à 180 min,
+  0 à 60 s d'incrément).
+
+  | Règle | Comportement |
+  | --- | --- |
+  | Départ | Après le premier coup des Blancs (gratuit, comme sur les serveurs en ligne). |
+  | Incrément | Ajouté à un camp après chacun de ses coups chronométrés. |
+  | Affichage | `1:05:00`, `4:59`, puis les dixièmes sous dix secondes (`9.4`) ; la pendule qui tourne est éclairée, rouge sous dix secondes. |
+  | Temps écoulé | Le camp perd ; nulle si l'adversaire n'a plus que son roi. La recherche de l'ordinateur s'arrête si c'est lui. |
+  | Fin de partie | La pendule s'arrête au mat, au pat ou à la nulle. |
+  | Drapeau pendant le coup | Si le temps s'épuise pendant que le coup est joué, le temps l'emporte, sans incrément. |
+  | Dialogue « Nouvelle partie » | La pendule continue, comme une vraie : ouvrir le dialogue ne met pas la partie en pause. |
+
+  `ChessClock` lit le temps d'un `TimeProvider` : il mesure le temps réel écoulé
+  (un rendu lent ne vole pas de secondes) et les tests avancent le temps à la
+  main. La fenêtre redessine la pendule tous les dixièmes de seconde, et seulement
+  quand elle tourne.
+- **Stockfish voit la partie** : il reçoit la position de départ et tous les
+  coups (`position fen <départ> moves e2e4 e7e5 …`), donc les répétitions.
 
 ### Saisie des coups
 
@@ -188,24 +219,24 @@ dans le menu Applications (« Toutes les applications » sur mobile).
 
 | Suite | Ce qu'elle couvre |
 | --- | --- |
-| `tests/Kazo.Chess.Tests` | `Square`, `BoardPosition`, `MoveRequest`, `GameStatus`, lecture des snapshots (sur des snapshots réels de chess.js dans `Fixtures/`, écrits par `tests/js/write-fixtures.mjs`), `ChessJsRules` (sur un faux runtime JS : une nouvelle partie qui échoue garde l'ancienne) toute l'interaction du plateau, `GameSetup`, `GameSession` (avec un faux moteur : réponse de l'ordinateur, coup refusé, nouvelle partie pendant qu'il réfléchit, moteur qui ne démarre pas) et `StockfishEngine` (faux worker : un seul démarrage, options UCI, `stop` à l'annulation, jeton déjà annulé, fermeture pendant le démarrage) ; courses de `GameSession` : deux nouvelles parties qui se chevauchent, coup demandé pendant un départ, coup trouvé au moment d'une nouvelle partie, départ qui échoue, abonné de `Changed` qui lève une exception. 135 tests. |
-| `tests/js` | Le module `chess-rules.js` avec chess.js : coups légaux et illégaux, mat, pat, promotion, matériel insuffisant, règle des 50 coups. Le module `chess-engine.js` avec un faux worker : ordre UCI, file des recherches, `stop`, échéances, erreur du worker, `terminate`. 15 tests. |
-| `tests/e2e` | L'app dans l'hôte, dans Chromium : coups au clic, au glisser et au clavier ; mat du berger (plateau verrouillé) ; promotion (annulée au bouton, puis choisie au clavier avec le focus sur le sélecteur) ; écran de téléphone (Pixel 7) et toucher ; contre Stockfish avec les Noirs (il ouvre, on répond, il rejoue) ; Échap ferme le dialogue et rend le focus ; une nouvelle partie pendant que Stockfish réfléchit (son coup n'est pas joué). 7 parcours. `CHESS_BASE_URL` réutilise un hôte déjà lancé. |
+| `tests/Kazo.Chess.Tests` | `Square`, `BoardPosition`, `MoveRequest`, `GameStatus`, lecture des snapshots (sur des snapshots réels de chess.js dans `Fixtures/`, écrits par `tests/js/write-fixtures.mjs`), `ChessJsRules` (sur un faux runtime JS : une nouvelle partie qui échoue garde l'ancienne) toute l'interaction du plateau, `GameSetup`, `GameSession` (avec un faux moteur : réponse de l'ordinateur, coup refusé, nouvelle partie pendant qu'il réfléchit, moteur qui ne démarre pas) et `StockfishEngine` (faux worker : un seul démarrage, options UCI, `stop` à l'annulation, jeton déjà annulé, fermeture pendant le démarrage) ; courses de `GameSession` : deux nouvelles parties qui se chevauchent, coup demandé pendant un départ, coup trouvé au moment d'une nouvelle partie, départ qui échoue, abonné de `Changed` qui lève une exception ; la pendule (sur un faux `TimeProvider`), le temps écoulé, l'annulation, la position envoyée au moteur. 177 tests. |
+| `tests/js` | Le module `chess-rules.js` avec chess.js : coups légaux et illégaux, mat, pat, promotion, matériel insuffisant, règle des 50 coups. Le module `chess-engine.js` avec un faux worker : ordre UCI, file des recherches, `stop`, échéances, erreur du worker, `terminate`. Annuler, position de départ, promotion dans l'historique. 17 tests. |
+| `tests/e2e` | L'app dans l'hôte, dans Chromium : coups au clic, au glisser et au clavier ; mat du berger (plateau verrouillé) ; promotion (annulée au bouton, puis choisie au clavier avec le focus sur le sélecteur) ; écran de téléphone (Pixel 7) et toucher ; contre Stockfish avec les Noirs (il ouvre, on répond, il rejoue) ; Échap ferme le dialogue et rend le focus ; une nouvelle partie pendant que Stockfish réfléchit (son coup n'est pas joué) ; annuler et retourner à deux, annuler contre l'ordinateur, pendule 5+0. 10 parcours. `CHESS_BASE_URL` réutilise un hôte déjà lancé. |
 
 La CI (`.github/workflows/ci.yml`) fait tout cela à chaque push et à chaque PR.
 
 ## Décisions prises pendant le chantier
 
-- **Id et éditeur** : `ca.kazo.chess` et `pub.kazo` (question posée à Benoit,
-  modifiable jusqu'au premier tag `v1.0.0`).
+- **Id et éditeur** : `ca.kazo.chess` et `pub.kazo` (confirmés par Benoit le
+  2026-10-31).
 - **Jeu de pièces** : « celtic » (MIT). Parmi les jeux libres repris par
   lichess, seuls « celtic », « spatial », « fantasy » (MIT) et « rhosgfx »
   (CC0) respectent la décision Q15 ; « celtic » est le plus lisible et va avec
   l'esthétique gothique.
 - **Nulles par triple répétition et règle des 50 coups** : la partie s'arrête
-  d'elle-même, comme chess.js le signale (`isDraw()`). Aux règles de la FIDE,
-  ces deux nulles se réclament ; seules la quintuple répétition et les 75 coups
-  sont automatiques. Question posée à Benoit.
+  d'elle-même, comme chess.js le signale (`isDraw()`) et comme sur chess.com.
+  Aux règles de la FIDE ces nulles se réclament ; Benoit a choisi l'arrêt
+  automatique le 2026-10-31.
 - **Erreurs** : une erreur des règles (JavaScript) s'affiche dans le panneau et
   la partie reste telle quelle ; si le script du plateau ne se charge pas, le
   clavier joue toujours.
@@ -236,5 +267,13 @@ Chantier 2 (`chess/2-engine`) :
   worker, départ raté sans effet sur la partie en cours, focus et clavier du
   dialogue (Échap, Tab, retour au bouton).
 
-Suite du plan : historique, annuler, retourner le plateau, pendule, fichiers
-`.pgn` (voir le [plan](plan.md)).
+Chantier 3 (`chess/3-history-and-clock`) :
+
+- [x] Feuille de partie, annuler le coup, retourner le plateau.
+- [x] Pendule : sans, 5+0, 10+0, 15+10, personnalisée ; temps écoulé.
+- [x] Stockfish reçoit le départ et tous les coups.
+- [x] Tests C# (pendule sur un faux `TimeProvider`), node et de bout en bout.
+
+Suite du plan : fichiers `.pgn` (enregistrer, ouvrir, association de fichiers),
+puis le passage au modèle `hackeros-solution` et la publication au Store (voir
+le [plan](plan.md)).
