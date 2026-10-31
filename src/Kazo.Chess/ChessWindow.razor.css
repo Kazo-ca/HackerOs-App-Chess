@@ -123,6 +123,8 @@
     flex: 1 1 auto;
 }
 
+/* Side modifiers are "side-white" and "side-black": the OS stylesheet already gives meaning to
+   plain "white" and "black" classes. */
 .toolbar-button.icon {
     display: inline-flex;
     align-items: center;
@@ -216,11 +218,11 @@
     vertical-align: middle;
 }
 
-.side-token.white {
+.side-token.side-white {
     background: #f3f1ea;
 }
 
-.side-token.black {
+.side-token.side-black {
     background: #2b2f36;
 }
 

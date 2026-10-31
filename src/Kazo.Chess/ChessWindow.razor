@@ -46,11 +46,15 @@
                 <div class="status-card @(_session.IsOver ? "over" : string.Empty)" role="status" aria-live="polite">
                     @if (status.Side is { } side)
                     {
-                        <span class="side-token @(side == PieceColor.White ? "white" : "black")" aria-hidden="true"></span>
+                        <span class="side-token @(side == PieceColor.White ? "side-white" : "side-black")" aria-hidden="true"></span>
                     }
                     <span class="status-text">@StatusText(status)</span>
                 </div>
-                @if (_session.IsThinking)
+                @if (_session.IsLoadingEngine)
+                {
+                    <p class="thinking" role="status">@L["LoadingEngine"]</p>
+                }
+                else if (_session.IsThinking)
                 {
                     <p class="thinking" role="status">@L["ComputerThinking"]</p>
                 }
@@ -79,8 +83,8 @@
         TimeSpan? remaining = clock?.Remaining(side);
         bool running = clock?.Running == side;
         bool low = remaining is { } left && left < ClockFormat.TenthsBelow;
-        <div class="player-card @(side == PieceColor.White ? "white" : "black") @(running ? "running" : string.Empty)">
-            <span class="side-token @(side == PieceColor.White ? "white" : "black")" aria-hidden="true"></span>
+        <div class="player-card @(side == PieceColor.White ? "side-white" : "side-black") @(running ? "running" : string.Empty)">
+            <span class="side-token @(side == PieceColor.White ? "side-white" : "side-black")" aria-hidden="true"></span>
             <span class="player-name">
                 <span class="player-side">@SideName(side)</span>
                 <span class="player-who">@PlayerName(side)</span>

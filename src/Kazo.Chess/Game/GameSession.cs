@@ -56,6 +56,9 @@ public sealed class GameSession : IAsyncDisposable
     /// <summary>Gets whether the computer is searching its move.</summary>
     public bool IsThinking { get; private set; }
 
+    /// <summary>Gets whether the computer's engine is being started (its first download takes a moment).</summary>
+    public bool IsLoadingEngine { get; private set; }
+
     /// <summary>Gets the game's clock, or <see langword="null"/> for a game without one.</summary>
     public ChessClock? Clock { get; private set; }
 
@@ -278,6 +281,20 @@ public sealed class GameSession : IAsyncDisposable
     // An engine that cannot start (its worker died, or never answered) is dropped and one fresh
     // engine is tried before giving up, so a dead worker never costs the player two new games.
     private async Task StartEngineAsync(CancellationToken cancellationToken)
+    {
+        IsLoadingEngine = true;
+        Changed?.Invoke();
+        try
+        {
+            await StartEngineOnceOrTwiceAsync(cancellationToken);
+        }
+        finally
+        {
+            IsLoadingEngine = false;
+        }
+    }
+
+    private async Task StartEngineOnceOrTwiceAsync(CancellationToken cancellationToken)
     {
         for (int attempt = 1; ; attempt++)
         {

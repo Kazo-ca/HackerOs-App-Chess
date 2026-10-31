@@ -204,4 +204,7 @@
   <data name="StatusTimeOutDraw" xml:space="preserve">
     <value>Temps écoulé, mais plus de matériel pour mater : nulle</value>
   </data>
+  <data name="LoadingEngine" xml:space="preserve">
+    <value>Démarrage du moteur d'échecs…</value>
+  </data>
 </root>

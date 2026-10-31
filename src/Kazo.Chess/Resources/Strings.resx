@@ -204,4 +204,7 @@
   <data name="StatusTimeOutDraw" xml:space="preserve">
     <value>Out of time, but no mating material left: draw</value>
   </data>
+  <data name="LoadingEngine" xml:space="preserve">
+    <value>Starting the chess engine…</value>
+  </data>
 </root>
