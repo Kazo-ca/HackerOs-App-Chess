@@ -425,6 +425,51 @@ public sealed class GameSessionTests
     }
 
     [Fact]
+    public async Task AFlagFallingWhileANewGameStarts_LeavesTheNewGameAlone()
+    {
+        var time = new ManualTime();
+        var rules = new FakeRules();
+        var engine = new FakeEngine { Replies = { Move("d2d4") } };
+        await using var session = new GameSession(rules, () => engine, time);
+        await session.StartAsync(GameSetup.TwoPlayers with { Clock = TimeControl.Of(1, 0) });
+        await session.PlayAsync(Move("e2e4"));
+        var loading = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        rules.NewGameGate = loading.Task;
+
+        Task start = session.StartAsync(Computer(PieceColor.Black));
+        time.Advance(TimeSpan.FromSeconds(61));
+        Assert.False(session.CheckTime());
+        loading.SetResult();
+        await start;
+
+        Assert.Null(session.TimedOut);
+        Assert.Equal(1, engine.Searches);
+        Assert.Equal(["d2d4"], rules.Played);
+        Assert.Equal(PieceColor.Black, session.Mover);
+    }
+
+    [Fact]
+    public async Task AFlagFallingWhileTheMoveIsPlayed_LosesOnTime_WithoutIncrement()
+    {
+        var time = new ManualTime();
+        var rules = new FakeRules();
+        await using var session = new GameSession(rules, () => new FakeEngine(), time);
+        await session.StartAsync(GameSetup.TwoPlayers with { Clock = TimeControl.Of(1, 5) });
+        await session.PlayAsync(Move("e2e4"));
+        var playing = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        rules.MoveGate = playing.Task;
+
+        Task<bool> move = session.PlayAsync(Move("e7e5"));
+        time.Advance(TimeSpan.FromSeconds(61));
+        playing.SetResult();
+        await move;
+
+        Assert.Equal(PieceColor.Black, session.TimedOut);
+        Assert.Equal(TimeSpan.Zero, session.Clock!.Remaining(PieceColor.Black));
+        Assert.True(session.Clock.IsStopped);
+    }
+
+    [Fact]
     public async Task ANewGame_ComesWithAFreshClock()
     {
         var time = new ManualTime();
@@ -495,17 +540,24 @@ public sealed class GameSessionTests
             return new GameSnapshot(Start.Fen, turn, false, GameOutcome.Ongoing, Start.LegalMoves, history);
         }
 
-        public Task<GameSnapshot?> TryMoveAsync(MoveRequest move, CancellationToken cancellationToken = default)
+        public Task? MoveGate { get; set; }
+
+        public async Task<GameSnapshot?> TryMoveAsync(MoveRequest move, CancellationToken cancellationToken = default)
         {
+            if (MoveGate is { } gate)
+            {
+                await gate;
+            }
+
             if (Refuse || move.Uci == RefusedMove)
             {
-                return Task.FromResult<GameSnapshot?>(null);
+                return null;
             }
 
             PieceColor next = _current.Turn == PieceColor.White ? PieceColor.Black : PieceColor.White;
             Played.Add(move.Uci);
             _current = With(next);
-            return Task.FromResult<GameSnapshot?>(_current);
+            return _current;
         }
 
         public List<int> Undone { get; } = [];
@@ -562,6 +614,8 @@ public sealed class GameSessionTests
 
         public async Task<MoveRequest?> BestMoveAsync(EnginePosition position, EngineLevel level, CancellationToken cancellationToken = default)
         {
+            // Like StockfishEngine: an already cancelled search never starts.
+            cancellationToken.ThrowIfCancellationRequested();
             Positions.Add(position);
             Levels.Add(level);
             Searches++;

@@ -72,12 +72,12 @@
                     <label>
                         <span>@L["CustomMinutes"]</span>
                         <input type="number" min="@TimeControl.MinMinutes" max="@TimeControl.MaxMinutes" step="1"
-                               @bind="_customMinutes" />
+                               @bind="CustomMinutes" />
                     </label>
                     <label>
                         <span>@L["CustomIncrement"]</span>
                         <input type="number" min="0" max="@TimeControl.MaxIncrementSeconds" step="1"
-                               @bind="_customIncrement" />
+                               @bind="CustomIncrement" />
                     </label>
                 </div>
             }

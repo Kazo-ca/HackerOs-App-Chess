@@ -66,8 +66,9 @@ public sealed class ChessClock
 
         if (Running == mover)
         {
-            TimeSpan left = Remaining(mover) + Control.Increment;
-            Set(mover, left);
+            // A side out of time gains nothing by pressing: its flag has fallen.
+            TimeSpan left = Remaining(mover);
+            Set(mover, left > TimeSpan.Zero ? left + Control.Increment : TimeSpan.Zero);
         }
 
         Running = mover.Opponent();

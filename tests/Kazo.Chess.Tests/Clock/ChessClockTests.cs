@@ -62,6 +62,19 @@ public sealed class ChessClockTests
     }
 
     [Fact]
+    public void ASideOutOfTime_GainsNoIncrementByPressing()
+    {
+        var time = new ManualTime();
+        var clock = new ChessClock(TimeControl.Of(1, 10), time);
+        clock.Press(PieceColor.White);
+        time.Advance(TimeSpan.FromSeconds(70));
+
+        clock.Press(PieceColor.Black);
+
+        Assert.Equal(TimeSpan.Zero, clock.Remaining(PieceColor.Black));
+    }
+
+    [Fact]
     public void Stop_FreezesBothTimesForGood()
     {
         var time = new ManualTime();

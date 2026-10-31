@@ -162,7 +162,7 @@ public sealed class GameSession : IAsyncDisposable
         {
             // A new game came in while this move waited, the turn changed, or the player's flag
             // fell before the move: the move belongs to a position that is no longer playable.
-            if (generation != Volatile.Read(ref _generation) || CheckTime() || Mover is not { } mover)
+            if (generation != Volatile.Read(ref _generation) || CheckTimeCore() || Mover is not { } mover)
             {
                 return false;
             }
@@ -230,6 +230,15 @@ public sealed class GameSession : IAsyncDisposable
     /// <returns><see langword="true"/> when the game is over on time.</returns>
     public bool CheckTime()
     {
+        // While a move or a new game is processed, that work checks the clock itself; looking here
+        // could end a game being replaced and cancel the new game's search.
+        return IsBusy ? TimedOut is not null : CheckTimeCore();
+    }
+
+    // Ends the game on time when a flag fell. Only the computer's own search is stopped: the
+    // search token may already belong to a newer game.
+    private bool CheckTimeCore()
+    {
         if (TimedOut is not null)
         {
             return true;
@@ -242,7 +251,11 @@ public sealed class GameSession : IAsyncDisposable
 
         TimedOut = flagged;
         Clock.Stop();
-        _search.Cancel();
+        if (IsThinking)
+        {
+            _search.Cancel();
+        }
+
         Changed?.Invoke();
         return true;
     }
@@ -343,7 +356,7 @@ public sealed class GameSession : IAsyncDisposable
             try
             {
                 if (generation != Volatile.Read(ref _generation)
-                    || CheckTime()
+                    || CheckTimeCore()
                     || Snapshot is not { IsOver: false } snapshot
                     || snapshot.Turn != Setup.ComputerColor)
                 {
@@ -371,7 +384,7 @@ public sealed class GameSession : IAsyncDisposable
                     throw;
                 }
 
-                if (generation != Volatile.Read(ref _generation) || CheckTime())
+                if (generation != Volatile.Read(ref _generation) || CheckTimeCore())
                 {
                     // A new game came in as the engine answered (the move belongs to the old one),
                     // or the computer's own time ran out while it thought.
@@ -391,10 +404,15 @@ public sealed class GameSession : IAsyncDisposable
         }
     }
 
-    // After a move: the clock passes to the other side, or stops when the move ended the game.
+    // After a move: the clock passes to the other side, or stops when the move ended the game. A
+    // flag that fell while the move was being played wins: the time ran out before the press.
     private void PressClock(PieceColor mover)
     {
-        if (Snapshot is { IsOver: true })
+        if (Clock?.Flagged is not null)
+        {
+            CheckTimeCore();
+        }
+        else if (Snapshot is { IsOver: true })
         {
             Clock?.Stop();
         }

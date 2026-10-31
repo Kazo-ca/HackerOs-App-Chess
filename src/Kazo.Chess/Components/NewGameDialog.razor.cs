@@ -73,6 +73,20 @@ public sealed partial class NewGameDialog
     private ClockChoice _clock;
     private int _customMinutes;
     private int _customIncrement;
+
+    // The custom fields keep their value in range as it is typed, so what the field shows is what
+    // the game gets (and what the dialog shows next time).
+    private int CustomMinutes
+    {
+        get => _customMinutes;
+        set => _customMinutes = Math.Clamp(value, TimeControl.MinMinutes, TimeControl.MaxMinutes);
+    }
+
+    private int CustomIncrement
+    {
+        get => _customIncrement;
+        set => _customIncrement = Math.Clamp(value, 0, TimeControl.MaxIncrementSeconds);
+    }
     private ElementReference _twoPlayersInput;
     private ElementReference _computerInput;
     private ElementReference _startButton;
