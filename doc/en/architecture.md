@@ -45,7 +45,8 @@ waits for the OS to serve the `wwwroot/` files of installed apps
 
 | Folder or file | Role |
 | --- | --- |
-| `ChessApp.cs` | Manifest (`[AppManifest]`): id `ca.kazo.chess`, publisher `pub.kazo`, category `games`, desktop and mobile, 860×640 window (minimum 360×420). |
+| `ChessApp.cs` | Manifest (`[AppManifest]`): id `ca.kazo.chess`, publisher `pub.kazo`, category `games`, desktop and mobile, 860×640 window (minimum 360×420). Capabilities `dialogs.file-open`, `dialogs.file-save`, `filesystem.user-home.read` and `.write`; opens `.pgn` files (`application/x-chess-pgn`). |
+| `Pgn/PgnTags.cs` | The tags of a saved game and its PGN result (`1-0`, `0-1`, `1/2-1/2`, `*`). |
 | `ChessWindow.razor` (+ `.cs`, `.css`) | The window: toolbar ("New game"), board, status panel (turn, players, "The computer is thinking…"). It shows the `GameSession` and forwards what the player does. |
 | `Components/NewGameDialog.razor` (+ `.cs`, `.css`) | The "New game" dialog, inside the window: two players or against the computer, level, colour. It replaces a confirmation box: it says when the current game will be abandoned. |
 | `Game/GameSetup.cs` | How the game is set up: mode, level, the player's colour; side shown at the bottom; who may move. |
@@ -159,6 +160,29 @@ above): it sees repetitions.
 - **Stockfish sees the game**: it receives the start position and every move
   (`position fen <start> moves e2e4 e7e5 …`), hence the repetitions.
 
+### `.pgn` files
+
+- **Save**: the SDK's save dialog suggests `chess-YYYY-MM-DD.pgn` (or the name
+  of the open game); the file gets the seven tags (`Event "Casual game"`,
+  `Site "HackerOS"`, the date, the players, the result) then the moves, written
+  by chess.js. Against the computer the players are the login name and
+  `Stockfish 19 lite (Skill N)`; between two players, `?`. The result follows
+  the game: mate, draw, out of time, or `*` for a game still going.
+- **Open**: the SDK's open dialog, a double-click on a `.pgn` in the file
+  explorer, or "Open with" (the manifest declares the type). The game opens
+  between two players, without a clock, at its last move; its moves are
+  replayed (the score sheet, undo and Stockfish see them). A game started from a
+  position (`[FEN]`) keeps that start. A game saved as over off the board
+  (resignation, agreed draw) stays over until a move is taken back. An
+  unreadable file leaves the current game and says why (chess.js names the
+  first illegal move).
+- The window title becomes `game.pgn — Chess`.
+- **Limits**: files are read and written by `HackFile` with the home folder's
+  rights; a file chosen elsewhere in the dialog is refused (the chosen handle is
+  not used yet). The dialogs always get a starting folder: without it, the 2.1.0
+  dialogs guess a home folder from the user's internal id, which does not exist,
+  and the OS stops on the error.
+
 ### Entering moves
 
 Two ways to play, as on a real board, with the mouse as with a finger:
@@ -213,9 +237,9 @@ Applications menu ("All applications" on mobile).
 
 | Suite | What it covers |
 | --- | --- |
-| `tests/Kazo.Chess.Tests` | `Square`, `BoardPosition`, `MoveRequest`, `GameStatus`, snapshot reading (on real chess.js snapshots in `Fixtures/`, written by `tests/js/write-fixtures.mjs`), `ChessJsRules` (on a fake JS runtime: a failed new game keeps the current one) the whole board interaction, `GameSetup`, `GameSession` (with a fake engine: the computer's reply, a refused move, a new game while it thinks, an engine that fails to start) and `StockfishEngine` (fake worker: one start, UCI options, `stop` on cancellation, token already cancelled, close during start); `GameSession` races: two overlapping new games, a move asked during a start, a move found as a new game starts, a failed start, a `Changed` subscriber that throws; the clock (on a fake `TimeProvider`), time-out, undo, the position sent to the engine. 177 tests. |
-| `tests/js` | The `chess-rules.js` module with chess.js: legal and illegal moves, mate, stalemate, promotion, insufficient material, fifty-move rule. The `chess-engine.js` module with a fake worker: UCI order, search queue, `stop`, deadlines, worker error, `terminate`. Undo, start position, promotion in the history. 17 tests. |
-| `tests/e2e` | The app in the host, in Chromium: moves by click, by drag and by keyboard; fool's mate (board locked); promotion (cancelled with the button, then chosen with the keyboard, the focus on the picker); phone screen (Pixel 7) and touch; against Stockfish as Black (it opens, the player answers, it plays again); Escape closes the dialog and gives the focus back; a new game while Stockfish thinks (its move is not played); undo and flip between two players, undo against the computer, a 5+0 clock. 10 runs. `CHESS_BASE_URL` reuses a host already running. |
+| `tests/Kazo.Chess.Tests` | `Square`, `BoardPosition`, `MoveRequest`, `GameStatus`, snapshot reading (on real chess.js snapshots in `Fixtures/`, written by `tests/js/write-fixtures.mjs`), `ChessJsRules` (on a fake JS runtime: a failed new game keeps the current one) the whole board interaction, `GameSetup`, `GameSession` (with a fake engine: the computer's reply, a refused move, a new game while it thinks, an engine that fails to start) and `StockfishEngine` (fake worker: one start, UCI options, `stop` on cancellation, token already cancelled, close during start); `GameSession` races: two overlapping new games, a move asked during a start, a move found as a new game starts, a failed start, a `Changed` subscriber that throws; the clock (on a fake `TimeProvider`), time-out, undo, the position sent to the engine; PGN (results, tags, loaded game, recorded result). 196 tests. |
+| `tests/js` | The `chess-rules.js` module with chess.js: legal and illegal moves, mate, stalemate, promotion, insufficient material, fifty-move rule. The `chess-engine.js` module with a fake worker: UCI order, search queue, `stop`, deadlines, worker error, `terminate`. Undo, start position, promotion in the history; PGN round trip, `[FEN]` start, invalid text. 21 tests. |
+| `tests/e2e` | The app in the host, in Chromium: moves by click, by drag and by keyboard; fool's mate (board locked); promotion (cancelled with the button, then chosen with the keyboard, the focus on the picker); phone screen (Pixel 7) and touch; against Stockfish as Black (it opens, the player answers, it plays again); Escape closes the dialog and gives the focus back; a new game while Stockfish thinks (its move is not played); undo and flip between two players, undo against the computer, a 5+0 clock; save a game as `.pgn` and open it again. 11 runs. `CHESS_BASE_URL` reuses a host already running. |
 
 The CI (`.github/workflows/ci.yml`) runs all of it on every push and PR.
 
@@ -267,6 +291,12 @@ Work item 3 (`chess/3-history-and-clock`):
 - [x] Stockfish receives the start and every move.
 - [x] C# (clock on a fake `TimeProvider`), node and end-to-end tests.
 
-Next in the plan: `.pgn` files (save, open, file association), then the move to
-the `hackeros-solution` template and the Store release (see the
+Work item 4 (`chess/4-pgn-files`):
+
+- [x] Save as `.pgn` (tags, result), open a `.pgn`.
+- [x] `.pgn` association in the manifest, the launch file opened.
+- [x] C#, node and end-to-end tests (save then open again).
+
+Next in the plan: move to the `hackeros-solution` template and release to the
+Store, after the HackerOS release that contains the template (see the
 [plan](plan.md)).

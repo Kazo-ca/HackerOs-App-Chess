@@ -1,3 +1,4 @@
+using HackerOs.App.Abstractions;
 using HackerOs.AppSdk.Blazor;
 using HackerOs.AppSdk.Globalization;
 using HackerOs.AppSdk.IO;
@@ -32,6 +33,7 @@ public sealed partial class ChessWindow : IAsyncDisposable
     private string? _error;
     private string? _notice;
     private string? _documentName;
+    private string? _documentDirectory;
     private Timer? _clockTimer;
     private IStringLocalizer<Strings>? _localizer;
 
@@ -128,6 +130,7 @@ public sealed partial class ChessWindow : IAsyncDisposable
         OpenFileDialogResult result = await OpenFileAsync(new OpenFileDialogRequest
         {
             Title = L["OpenTitle"],
+            InitialDirectory = DialogDirectory,
             Filters = [new FileDialogFilter(L["FilterPgn"], [".pgn"], ["application/x-chess-pgn"]), new FileDialogFilter(L["FilterAll"], [], [])],
             RequestedAccess = SelectedFileAccess.Read,
         });
@@ -142,6 +145,7 @@ public sealed partial class ChessWindow : IAsyncDisposable
         SaveFileDialogResult result = await SaveFileAsync(new SaveFileDialogRequest
         {
             Title = L["SaveTitle"],
+            InitialDirectory = DialogDirectory,
             SuggestedFileName = _documentName ?? $"chess-{Today:yyyy-MM-dd}.pgn",
             DefaultExtension = ".pgn",
             Filters = [new FileDialogFilter(L["FilterPgn"], [".pgn"], ["application/x-chess-pgn"])],
@@ -154,9 +158,10 @@ public sealed partial class ChessWindow : IAsyncDisposable
 
         string path = target.Path.Value;
         string name = HackPath.GetFileName(path);
+        _documentDirectory = HackPath.GetDirectoryName(path);
         try
         {
-            string pgn = await _session.ExportPgnAsync(Today, AppContext.UserId, AppContext.CancellationToken);
+            string pgn = await _session.ExportPgnAsync(Today, AppContext.UserLoginName, AppContext.CancellationToken);
             await HackFile.WriteAllTextAsync(path, pgn, AppContext.CancellationToken);
             await SetDocumentAsync(name);
             _error = null;
@@ -173,6 +178,7 @@ public sealed partial class ChessWindow : IAsyncDisposable
     private async Task<bool> LoadFileAsync(string path)
     {
         string name = HackPath.GetFileName(path);
+        _documentDirectory = HackPath.GetDirectoryName(path);
         try
         {
             string pgn = await HackFile.ReadAllTextAsync(path, AppContext.CancellationToken);
@@ -204,6 +210,11 @@ public sealed partial class ChessWindow : IAsyncDisposable
     }
 
     private string WindowTitleForApp => L["AppTitle"];
+
+    // The dialogs open in the folder of the last game, or in the user's home folder. Always given:
+    // without it, the 2.1.0 dialogs guess a home folder from the user's internal id, which does not
+    // exist, and the OS stops on the error.
+    private VirtualPath DialogDirectory => VirtualPath.Parse(_documentDirectory ?? AppContext.HomeDirectory);
 
     private DateOnly Today => DateOnly.FromDateTime(DateTime.Now);
 

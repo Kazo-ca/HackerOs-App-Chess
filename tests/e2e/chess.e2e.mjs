@@ -272,3 +272,33 @@ test('a 5+0 clock starts after White\'s first move and runs for the side to move
     assert.equal(await page.getByRole('button', { name: 'Undo move' }).isDisabled(), true);
     await page.close();
 });
+
+test('a game saved as .pgn opens again with its moves', { timeout: 300_000 }, async () => {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    await openChess(page, host.baseUrl);
+    await playMoves(page, [['e2', 'e4'], ['e7', 'e5'], ['g1', 'f3']]);
+
+    // Save in the home folder under the suggested name.
+    await page.getByRole('button', { name: 'Save' }).click();
+    const saveDialog = page.getByRole('dialog').filter({ has: page.getByRole('button', { name: 'Save' }) }).last();
+    const nameField = saveDialog.getByRole('textbox').last();
+    await nameField.waitFor();
+    const fileName = await nameField.inputValue();
+    assert.match(fileName, /^chess-\d{4}-\d{2}-\d{2}\.pgn$/);
+    await saveDialog.getByRole('button', { name: 'Save' }).click();
+    await page.getByText(`Saved as ${fileName}.`).waitFor();
+
+    // A fresh game, then open the file: the three moves come back, Black to move.
+    await page.getByRole('button', { name: 'New game' }).click();
+    await page.getByRole('dialog', { name: 'New game' }).getByRole('button', { name: 'Start' }).click();
+    await page.getByText('No moves yet').waitFor();
+    await page.getByRole('button', { name: 'Open', exact: true }).click();
+    const openDialog = page.getByRole('dialog').filter({ hasText: fileName }).last();
+    await openDialog.getByText(fileName, { exact: true }).click();
+    await openDialog.getByRole('button', { name: 'Open', exact: true }).click();
+
+    await pieceOn(page, 'f3').waitFor();
+    assert.equal(await page.locator('.move-row').count(), 2);
+    assert.equal(await status(page).innerText(), 'Black to move');
+    await page.close();
+});
