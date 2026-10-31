@@ -1,0 +1,133 @@
+{
+  "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+  "turn": "w",
+  "inCheck": false,
+  "checkmate": false,
+  "stalemate": false,
+  "insufficientMaterial": false,
+  "threefoldRepetition": false,
+  "fiftyMoves": false,
+  "moves": [
+    {
+      "from": "a2",
+      "to": "a3",
+      "san": "a3",
+      "promotion": null
+    },
+    {
+      "from": "a2",
+      "to": "a4",
+      "san": "a4",
+      "promotion": null
+    },
+    {
+      "from": "b2",
+      "to": "b3",
+      "san": "b3",
+      "promotion": null
+    },
+    {
+      "from": "b2",
+      "to": "b4",
+      "san": "b4",
+      "promotion": null
+    },
+    {
+      "from": "c2",
+      "to": "c3",
+      "san": "c3",
+      "promotion": null
+    },
+    {
+      "from": "c2",
+      "to": "c4",
+      "san": "c4",
+      "promotion": null
+    },
+    {
+      "from": "d2",
+      "to": "d3",
+      "san": "d3",
+      "promotion": null
+    },
+    {
+      "from": "d2",
+      "to": "d4",
+      "san": "d4",
+      "promotion": null
+    },
+    {
+      "from": "e2",
+      "to": "e3",
+      "san": "e3",
+      "promotion": null
+    },
+    {
+      "from": "e2",
+      "to": "e4",
+      "san": "e4",
+      "promotion": null
+    },
+    {
+      "from": "f2",
+      "to": "f3",
+      "san": "f3",
+      "promotion": null
+    },
+    {
+      "from": "f2",
+      "to": "f4",
+      "san": "f4",
+      "promotion": null
+    },
+    {
+      "from": "g2",
+      "to": "g3",
+      "san": "g3",
+      "promotion": null
+    },
+    {
+      "from": "g2",
+      "to": "g4",
+      "san": "g4",
+      "promotion": null
+    },
+    {
+      "from": "h2",
+      "to": "h3",
+      "san": "h3",
+      "promotion": null
+    },
+    {
+      "from": "h2",
+      "to": "h4",
+      "san": "h4",
+      "promotion": null
+    },
+    {
+      "from": "b1",
+      "to": "a3",
+      "san": "Na3",
+      "promotion": null
+    },
+    {
+      "from": "b1",
+      "to": "c3",
+      "san": "Nc3",
+      "promotion": null
+    },
+    {
+      "from": "g1",
+      "to": "f3",
+      "san": "Nf3",
+      "promotion": null
+    },
+    {
+      "from": "g1",
+      "to": "h3",
+      "san": "Nh3",
+      "promotion": null
+    }
+  ],
+  "history": []
+}

@@ -1,0 +1,49 @@
+{
+  "fen": "8/8/8/8/8/5k2/8/K1B5 b - - 0 1",
+  "turn": "b",
+  "inCheck": false,
+  "checkmate": false,
+  "stalemate": false,
+  "insufficientMaterial": true,
+  "threefoldRepetition": false,
+  "fiftyMoves": false,
+  "moves": [
+    {
+      "from": "f3",
+      "to": "e4",
+      "san": "Ke4",
+      "promotion": null
+    },
+    {
+      "from": "f3",
+      "to": "g4",
+      "san": "Kg4",
+      "promotion": null
+    },
+    {
+      "from": "f3",
+      "to": "g3",
+      "san": "Kg3",
+      "promotion": null
+    },
+    {
+      "from": "f3",
+      "to": "g2",
+      "san": "Kg2",
+      "promotion": null
+    },
+    {
+      "from": "f3",
+      "to": "f2",
+      "san": "Kf2",
+      "promotion": null
+    },
+    {
+      "from": "f3",
+      "to": "e2",
+      "san": "Ke2",
+      "promotion": null
+    }
+  ],
+  "history": []
+}

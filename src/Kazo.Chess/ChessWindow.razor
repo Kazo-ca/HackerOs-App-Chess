@@ -1,0 +1,55 @@
+@using Kazo.Chess.Components
+@using Kazo.Chess.Model
+@inherits WindowAppBase
+
+<div class="chess-window">
+    <header class="chess-toolbar">
+        <span class="chess-brand" aria-hidden="true">♞</span>
+        <span class="chess-title">@L["AppTitle"]</span>
+        <span class="toolbar-spacer"></span>
+        <button type="button" class="toolbar-button" disabled="@(_snapshot is null || _busy)" @onclick="NewGameAsync">
+            @L["NewGame"]
+        </button>
+    </header>
+
+    <main class="chess-main">
+        <section class="board-area" aria-label="@L["BoardLabel"]">
+            <div class="board-frame">
+                @if (_snapshot is not null)
+                {
+                    <ChessBoard Snapshot="_snapshot" Orientation="_orientation" Mover="Mover" OnMove="PlayAsync"
+                                OnScriptError="OnBoardScriptError" />
+                }
+                else
+                {
+                    <div class="board-placeholder" role="status">@(_error ?? L["LoadingRules"])</div>
+                }
+            </div>
+        </section>
+
+        <aside class="side-panel">
+            @if (_snapshot is not null)
+            {
+                GameStatus status = GameStatus.Of(_snapshot);
+                <div class="status-card @(_snapshot.IsOver ? "over" : string.Empty)" role="status" aria-live="polite">
+                    @if (status.Side is { } side)
+                    {
+                        <span class="side-token @(side == PieceColor.White ? "white" : "black")" aria-hidden="true"></span>
+                    }
+                    <span class="status-text">@StatusText(status)</span>
+                </div>
+                <dl class="players">
+                    <dt><span class="side-token white" aria-hidden="true"></span>@L["SideWhite"]</dt>
+                    <dd>@L["PlayerHuman"]</dd>
+                    <dt><span class="side-token black" aria-hidden="true"></span>@L["SideBlack"]</dt>
+                    <dd>@L["PlayerHuman"]</dd>
+                </dl>
+                @if (_error is not null)
+                {
+                    <p class="error-note" role="alert">@_error</p>
+                }
+                <p class="move-count">@L["MoveCount", (_snapshot.History.Count / 2) + 1]</p>
+            }
+        </aside>
+    </main>
+</div>

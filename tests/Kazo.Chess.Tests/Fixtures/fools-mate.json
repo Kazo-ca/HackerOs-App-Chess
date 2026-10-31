@@ -1,0 +1,37 @@
+{
+  "fen": "rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3",
+  "turn": "w",
+  "inCheck": true,
+  "checkmate": true,
+  "stalemate": false,
+  "insufficientMaterial": false,
+  "threefoldRepetition": false,
+  "fiftyMoves": false,
+  "moves": [],
+  "history": [
+    {
+      "from": "f2",
+      "to": "f3",
+      "san": "f3",
+      "color": "w"
+    },
+    {
+      "from": "e7",
+      "to": "e5",
+      "san": "e5",
+      "color": "b"
+    },
+    {
+      "from": "g2",
+      "to": "g4",
+      "san": "g4",
+      "color": "w"
+    },
+    {
+      "from": "d8",
+      "to": "h4",
+      "san": "Qh4#",
+      "color": "b"
+    }
+  ]
+}

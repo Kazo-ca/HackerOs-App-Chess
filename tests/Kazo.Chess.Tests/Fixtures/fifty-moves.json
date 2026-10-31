@@ -1,0 +1,103 @@
+{
+  "fen": "8/8/8/8/8/5k2/8/KR6 w - - 100 80",
+  "turn": "w",
+  "inCheck": false,
+  "checkmate": false,
+  "stalemate": false,
+  "insufficientMaterial": false,
+  "threefoldRepetition": false,
+  "fiftyMoves": true,
+  "moves": [
+    {
+      "from": "a1",
+      "to": "a2",
+      "san": "Ka2",
+      "promotion": null
+    },
+    {
+      "from": "a1",
+      "to": "b2",
+      "san": "Kb2",
+      "promotion": null
+    },
+    {
+      "from": "b1",
+      "to": "b2",
+      "san": "Rb2",
+      "promotion": null
+    },
+    {
+      "from": "b1",
+      "to": "b3",
+      "san": "Rb3+",
+      "promotion": null
+    },
+    {
+      "from": "b1",
+      "to": "b4",
+      "san": "Rb4",
+      "promotion": null
+    },
+    {
+      "from": "b1",
+      "to": "b5",
+      "san": "Rb5",
+      "promotion": null
+    },
+    {
+      "from": "b1",
+      "to": "b6",
+      "san": "Rb6",
+      "promotion": null
+    },
+    {
+      "from": "b1",
+      "to": "b7",
+      "san": "Rb7",
+      "promotion": null
+    },
+    {
+      "from": "b1",
+      "to": "b8",
+      "san": "Rb8",
+      "promotion": null
+    },
+    {
+      "from": "b1",
+      "to": "c1",
+      "san": "Rc1",
+      "promotion": null
+    },
+    {
+      "from": "b1",
+      "to": "d1",
+      "san": "Rd1",
+      "promotion": null
+    },
+    {
+      "from": "b1",
+      "to": "e1",
+      "san": "Re1",
+      "promotion": null
+    },
+    {
+      "from": "b1",
+      "to": "f1",
+      "san": "Rf1+",
+      "promotion": null
+    },
+    {
+      "from": "b1",
+      "to": "g1",
+      "san": "Rg1",
+      "promotion": null
+    },
+    {
+      "from": "b1",
+      "to": "h1",
+      "san": "Rh1",
+      "promotion": null
+    }
+  ],
+  "history": []
+}

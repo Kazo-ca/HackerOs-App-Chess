@@ -1,0 +1,226 @@
+/*
+  The Chess window, in the OS theme: a thin console-like toolbar, the board as large as the window
+  allows, and a side panel that moves under the board when the window is narrow (phones, a small
+  window on the desktop).
+*/
+.chess-window {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background:
+        radial-gradient(ellipse at 30% 20%, var(--hos-accent-subtle, rgba(66, 211, 146, 0.08)), transparent 60%),
+        var(--hos-bg-base, #0d1117);
+    color: var(--hos-text-primary, #e6edf3);
+    font-family: var(--hos-font-ui, system-ui, sans-serif);
+    /* A container query cannot style its own container: the window is the one the layout asks. */
+    container-type: inline-size;
+    container-name: chess-window;
+}
+
+.chess-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px;
+    background: var(--hos-toolbar-bg, var(--hos-bg-surface, #161b22));
+    border-bottom: 1px solid var(--hos-toolbar-border, var(--hos-border, #30363d));
+}
+
+.chess-brand {
+    color: var(--hos-accent, #42d392);
+    font-size: 1.3rem;
+    line-height: 1;
+    text-shadow: 0 0 10px var(--hos-accent-glow, transparent);
+}
+
+.chess-title {
+    font-family: var(--hos-font-mono, 'Consolas', monospace);
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--hos-text-accent, var(--hos-accent, #42d392));
+}
+
+.toolbar-spacer {
+    flex: 1;
+}
+
+.toolbar-button {
+    min-height: var(--hos-btn-min-height, 30px);
+    padding: var(--hos-btn-padding, 4px 12px);
+    background: var(--hos-btn-bg, #21262d);
+    color: var(--hos-btn-color, inherit);
+    border: 1px solid var(--hos-btn-border, var(--hos-border, #30363d));
+    border-radius: var(--hos-btn-radius, 4px);
+    font: inherit;
+    font-weight: var(--hos-btn-font-weight, 600);
+    cursor: pointer;
+    transition: background var(--hos-transition-fast, 120ms), border-color var(--hos-transition-fast, 120ms);
+}
+
+.toolbar-button:hover:not(:disabled) {
+    background: var(--hos-btn-hover-bg, #30363d);
+    border-color: var(--hos-btn-hover-border, var(--hos-accent, #42d392));
+}
+
+.toolbar-button:focus-visible {
+    outline: 2px solid var(--hos-focus-ring, var(--hos-accent, #42d392));
+    outline-offset: 1px;
+}
+
+.toolbar-button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.chess-main {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    gap: 16px;
+    padding: 16px;
+}
+
+/* The board area is a size container: the frame takes the largest square that fits in it. */
+.board-area {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: grid;
+    place-items: center;
+    container-type: size;
+}
+
+.board-frame {
+    width: min(100cqw, 100cqh);
+    height: min(100cqw, 100cqh);
+}
+
+.board-placeholder {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    padding: 16px;
+    border: 1px dashed var(--hos-border, #30363d);
+    border-radius: var(--hos-radius-md, 6px);
+    color: var(--hos-text-muted, #8b949e);
+    font-family: var(--hos-font-mono, 'Consolas', monospace);
+    text-align: center;
+}
+
+.side-panel {
+    width: 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.status-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: var(--hos-card-bg, var(--hos-bg-surface, #161b22));
+    border: 1px solid var(--hos-card-border, var(--hos-border, #30363d));
+    border-left: 3px solid var(--hos-accent, #42d392);
+    border-radius: var(--hos-card-radius, 6px);
+    box-shadow: var(--hos-card-shadow, none);
+    font-weight: 600;
+}
+
+.status-card.over {
+    border-left-color: var(--hos-warning, #e3b341);
+}
+
+.side-token {
+    flex: none;
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1px solid var(--hos-border-strong, #6e7681);
+    vertical-align: middle;
+}
+
+.side-token.white {
+    background: #f3f1ea;
+}
+
+.side-token.black {
+    background: #2b2f36;
+}
+
+.players {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px 12px;
+    margin: 0;
+    padding: 12px 14px;
+    background: var(--hos-bg-surface-dim, transparent);
+    border: 1px solid var(--hos-border-subtle, var(--hos-border, #30363d));
+    border-radius: var(--hos-radius-md, 6px);
+    font-size: 0.9rem;
+}
+
+.players dt {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+}
+
+.players dd {
+    margin: 0;
+    color: var(--hos-text-secondary, #c9d1d9);
+    text-align: end;
+}
+
+.error-note {
+    margin: 0;
+    padding: 10px 12px;
+    border: 1px solid var(--hos-error, #f85149);
+    border-radius: var(--hos-radius-md, 6px);
+    background: color-mix(in srgb, var(--hos-error, #f85149) 12%, transparent);
+    color: var(--hos-text-primary, #e6edf3);
+    font-size: 0.85rem;
+}
+
+.move-count {
+    margin: 0;
+    color: var(--hos-text-muted, #8b949e);
+    font-family: var(--hos-font-mono, 'Consolas', monospace);
+    font-size: 0.85rem;
+}
+
+/* Narrow window or phone: the panel goes under the board. */
+@container chess-window (max-width: 620px) {
+    .chess-main {
+        flex-direction: column;
+        justify-content: center;
+        gap: 10px;
+        padding: 10px;
+    }
+
+    /* As tall as it is wide, so the panel sits right under the board; it shrinks on a short screen. */
+    .board-area {
+        flex: 0 1 auto;
+        width: 100%;
+        aspect-ratio: 1;
+    }
+
+    .side-panel {
+        width: auto;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: stretch;
+    }
+
+    .status-card {
+        flex: 1 1 100%;
+    }
+
+    .players {
+        flex: 1;
+    }
+}
