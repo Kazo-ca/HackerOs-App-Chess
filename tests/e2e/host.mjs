@@ -1,6 +1,7 @@
 // Test harness of the end-to-end runs: starts the Chess host (src/Kazo.Chess.Os, built beforehand
-// with `dotnet build`) on a free port, or uses CHESS_BASE_URL when it points to one already running,
-// and opens the Chess app in a fresh HackerOS profile.
+// with `dotnet build -c Release`, or the configuration named by CHESS_CONFIGURATION) on a free port,
+// or uses CHESS_BASE_URL when it points to one already running, and opens the Chess app in a fresh
+// HackerOS profile.
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 import { fileURLToPath } from 'node:url';
@@ -47,7 +48,8 @@ export async function startHost() {
     }
     const port = await freePort();
     const baseUrl = `http://127.0.0.1:${port}/`;
-    const server = spawn('dotnet', ['run', '--no-build', '--urls', baseUrl], { cwd: hostProject, stdio: 'ignore' });
+    const configuration = process.env.CHESS_CONFIGURATION ?? 'Release';
+    const server = spawn('dotnet', ['run', '--no-build', '-c', configuration, '--urls', baseUrl], { cwd: hostProject, stdio: 'ignore' });
     await waitForHttp(baseUrl, 60_000);
     return { baseUrl, stop: () => server.kill() };
 }

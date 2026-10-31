@@ -15,37 +15,49 @@ Worker). Le but et les décisions sont dans le
 
 ```text
 HackerOs-App-Chess/
-├─ Directory.Build.props     # HackerOsVersion épinglée une fois (2.1.0)
+├─ external/HackerOs/        # sous-module : HackerOS sur le tag v2.2.0 (la version du dépôt)
+├─ Directory.Build.props     # racine du sous-module, profil, import de Versions.props
+├─ Directory.Build.targets   # mode source en Debug, HOSAPP0070 sans sous-module
+├─ global.json
 ├─ Kazo.Chess.slnx
 ├─ src/
-│  ├─ Kazo.Chess/            # l'app (hackeros-window)
-│  └─ Kazo.Chess.Os/         # hôte de débogage (hackeros-host) qui référence l'app
+│  ├─ Kazo.Chess/            # l'app
+│  └─ Kazo.Chess.Os/         # hôte : HackerOS, ses apps de base et Chess
 ├─ tests/
 │  ├─ Kazo.Chess.Tests/      # tests unitaires C# (xUnit)
-│  ├─ js/                    # tests du module des règles (node --test)
+│  ├─ js/                    # tests des modules JavaScript (node --test)
 │  └─ e2e/                   # parcours dans l'hôte (node --test + Playwright)
+├─ store/                    # fiche du Hack Store : icône, descriptions, captures, store.json
+├─ .github/workflows/        # ci.yml, publish-to-hack-store.yml
 └─ package.json              # outils des tests JavaScript
 ```
 
-**Départ sur les paquets NuGet 2.1.0.** Le modèle `hackeros-solution`
-(Kazo-ca/HackerOs#246) n'existe pas encore ; Benoit a choisi le 2026-10-30 de
-commencer quand même. La solution vient donc de `dotnet new hackeros-window` et
-`dotnet new hackeros-host` (paquets de nuget.org). Elle passera à la structure
-`hackeros-solution` (sous-module `external/HackerOs`, profils Debug et Release)
-quand ce modèle existera.
+**Structure du modèle `hackeros-solution`** (HackerOS 2.2.0, ADR 0176 et
+0207). Le dépôt suit la sortie du modèle : `external/HackerOs` est HackerOS en
+sous-module, exactement sur un tag de release, et son `build/Versions.props`
+donne **la** version du dépôt. Changer de version de HackerOS, c'est déplacer le
+sous-module sur un autre tag. On ne modifie jamais le sous-module : la CI refuse
+un sous-module modifié ou hors de son tag (`.github/scripts/check-hackeros-submodule.sh`).
 
-**Hôte de débogage.** `Kazo.Chess.Os` est un HackerOS complet avec les apps de
-base et Chess en `ProjectReference`. Comme l'app est un projet référencé, ses
-fichiers `wwwroot/` sont servis à `_content/Kazo.Chess/` : chess.js, les
-pièces et le module des règles marchent déjà. L'installation par `hackpkg` ou
-le Hack Store attend que l'OS serve les fichiers `wwwroot/` des apps installées
-(Kazo-ca/HackerOs#247).
+| Profil | HackerOS vient de | Usage |
+| --- | --- | --- |
+| `Debug` (`HackerOsUseSource=true`) | les projets du sous-module (on entre dans le SDK et l'OS) | développement, débogage |
+| `Release` (`HackerOsUseSource=false`) | les paquets `HackerOs.*` de nuget.org, à la version du sous-module | CI, tests E2E, Hack Store |
+
+Cloner : `git clone --recurse-submodules`, ou `git submodule update --init`
+après coup (sans sous-module, le build s'arrête sur `HOSAPP0070`). En Debug, le
+build compile HackerOS depuis les sources du sous-module (2 à 3 minutes la
+première fois).
+
+**Hôte.** `Kazo.Chess.Os` est un HackerOS complet avec les apps de base (dont le
+Hack Store) et Chess en `ProjectReference` : ses fichiers `wwwroot/` sont servis
+à `_content/Kazo.Chess/`.
 
 ## L'app `Kazo.Chess`
 
 | Dossier ou fichier | Rôle |
 | --- | --- |
-| `ChessApp.cs` | Manifeste (`[AppManifest]`) : id `ca.kazo.chess`, éditeur `pub.kazo`, catégorie `games`, bureau et mobile, fenêtre 860×640 (minimum 360×420). Capacités `dialogs.file-open`, `dialogs.file-save`, `filesystem.user-home.read` et `.write` ; ouvre les `.pgn` (`application/x-chess-pgn`). |
+| `ChessApp.cs` | Manifeste (`[AppManifest]`) : id `ca.kazo.chess`, version `1.0.0`, éditeur `pub.kazo`, catégorie `entertainment` (liste fermée du catalogue), bureau et mobile, fenêtre 860×640 (minimum 360×420). Capacités `dialogs.file-open`, `dialogs.file-save`, `filesystem.user-home.read` et `.write` ; ouvre les `.pgn` (`application/x-chess-pgn`). |
 | `Pgn/PgnTags.cs` | Les balises d'une partie enregistrée et son résultat PGN (`1-0`, `0-1`, `1/2-1/2`, `*`). |
 | `ChessWindow.razor` (+ `.cs`, `.css`) | La fenêtre : barre d'outils (« Nouvelle partie »), plateau, panneau d'état (tour, joueurs, « L'ordinateur réfléchit… »). Elle affiche la `GameSession` et lui passe ce que fait le joueur. |
 | `Components/NewGameDialog.razor` (+ `.cs`, `.css`) | Le dialogue « Nouvelle partie », dans la fenêtre : deux joueurs ou contre l'ordinateur, niveau, couleur. Il remplace une boîte de confirmation : il dit quand la partie en cours sera abandonnée. |
@@ -194,7 +206,7 @@ Depuis le chantier 3, Stockfish reçoit la position de départ et tous les coups
   gardées. Les fichiers sont lus et écrits par `HackFile` avec les droits du
   dossier personnel ; un fichier choisi ailleurs dans le dialogue est refusé
   (le handle choisi n'est pas encore utilisé). Les dialogues reçoivent toujours
-  un dossier de départ : sans lui, ceux de la 2.1.0 devinent un dossier
+  un dossier de départ : sans lui, ceux de la 2.1.0 (pas revérifié en 2.2.0) devinent un dossier
   personnel à partir de l'identifiant interne de l'utilisateur, qui n'existe
   pas, et l'OS s'arrête sur l'erreur.
 
@@ -238,12 +250,36 @@ de large, le panneau passe sous le plateau ; le plateau garde la plus grande
 taille carrée qui tient (`container-type: size`). `touch-action: none` sur le
 plateau : un glissement joue, il ne fait pas défiler la page.
 
+## Publication au Hack Store
+
+Le workflow `publish-to-hack-store.yml` du modèle tourne sur un tag `v<version>`
+(la `Version` du manifeste) : il vérifie le sous-module, compile l'app en Release,
+la met en paquet (`HackerOsPack`), assemble `apps/ca.kazo.chess_<version>/` depuis
+`store/` et le manifeste, et ouvre la pull request vers
+`Kazo-ca/HackerOs-AppMarketPlace` avec le secret `HACK_STORE_TOKEN` (sinon il
+laisse le dossier en artefact).
+
+**Ce qui bloque encore (HackerOS 2.2.0).** Une app installée depuis le Store
+reçoit seulement les fichiers `wwwroot/` **déclarés** dans les `Assets` de son
+manifeste (ADR 0206). Pour Chess, le paquet `HackerOsPack` ne contient donc que
+`icons/app.svg` : chess.js, les pièces, les modules et Stockfish manquent. Deux
+choses ne sont pas couvertes du tout par l'OS : le JavaScript collocalisé d'un
+composant (`Components/ChessBoard.razor.js`) n'est pas mis en paquet, et le CSS
+isolé de l'app (`Kazo.Chess.bundle.scp.css`) n'est jamais chargé pour une app
+installée. Toute app tierce écrite selon les règles du projet (CSS dans
+`.razor.css`) est concernée. Benoit a choisi le 2026-10-31 de
+corriger HackerOS : `HackerOsPack` mettra en paquet toutes les ressources
+statiques d'une app, et l'OS chargera le CSS isolé d'une app installée. Le tag
+`v1.0.0` attend la version de HackerOS qui l'apporte ; Benoit fusionne
+`chess/base` dans `main`, ajoute le secret `HACK_STORE_TOKEN` et crée le tag.
+
 ## Construire, lancer et tester
 
 ```bash
-dotnet build Kazo.Chess.slnx
-dotnet run --project src/Kazo.Chess.Os     # puis ouvrir l'adresse affichée
-dotnet test tests/Kazo.Chess.Tests         # tests unitaires C#
+git submodule update --init                # une fois, si le dépôt n'a pas été cloné avec --recurse-submodules
+dotnet build Kazo.Chess.slnx -c Release    # profil des paquets (Debug : depuis les sources du sous-module)
+dotnet run --project src/Kazo.Chess.Os -c Release   # puis ouvrir l'adresse affichée
+dotnet test Kazo.Chess.slnx -c Release --no-build   # tests unitaires C#
 npm ci && npm test                         # module des règles sous node
 npx playwright install chromium            # une fois
 npm run test:e2e                           # parcours dans l'hôte
@@ -315,5 +351,17 @@ Chantier 4 (`chess/4-pgn-files`) :
 - [x] Association des `.pgn` dans le manifeste, ouverture du fichier de lancement.
 - [x] Tests C#, node et de bout en bout (enregistrer puis rouvrir).
 
-Suite du plan : passage au modèle `hackeros-solution` et publication au Store,
-après la release HackerOS qui contient le modèle (voir le [plan](plan.md)).
+Chantier 5 (`chess/5-solution-template`) :
+
+- [x] Sous-module `external/HackerOs` sur `v2.2.0`, `Directory.Build.props/targets`,
+  `global.json`, vérification du sous-module, profils Debug (sources) et Release
+  (paquets) vérifiés.
+- [x] CI sur le profil Release (sous-module vérifié, C#, node, E2E) ; workflow
+  `publish-to-hack-store.yml`.
+- [x] Dossier `store/` : icône 256×256, descriptions courtes et longues (fr, en),
+  captures, `store.json` (catégorie `entertainment`, licence GPL-3.0).
+- [x] Version `1.0.0` dans le manifeste, catégorie `entertainment`.
+- [ ] Ressources de l'app installée par le Store : attend la correction de HackerOS
+  (voir « Publication » plus bas), puis le sous-module passe sur la nouvelle version.
+- [ ] Tag `v1.0.0` (créé par Benoit après la fusion dans `main`) et pull request
+  vers le catalogue (issue #3).

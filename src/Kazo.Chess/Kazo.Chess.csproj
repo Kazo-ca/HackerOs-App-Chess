@@ -8,7 +8,8 @@
       reports here, at build, any reflection the trimmer could not follow.
     -->
     <IsTrimmable>true</IsTrimmable>
-    <HackerOsVersion>2.1.0</HackerOsVersion>
+    <!-- A HackerOS app: its manifest.json is generated after the build, in both profiles. -->
+    <HackerOsAppProject>true</HackerOsAppProject>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.13" />

@@ -31,7 +31,11 @@ public sealed class ChessApp : AppDefinition
     public override string Description => "Chess for two players on the same screen or against Stockfish";
 
     /// <inheritdoc />
-    public override string Category => "games";
+    public override string Category => "entertainment";
+
+    /// <inheritdoc />
+    /// <remarks>The tag that publishes to the Hack Store must be v + this version.</remarks>
+    public override string Version => "1.0.0";
 
     /// <inheritdoc />
     public override IReadOnlyList<string> Capabilities =>

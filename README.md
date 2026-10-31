@@ -9,8 +9,13 @@ two players on the same screen or against the computer
 mouse, touch and keyboard.
 
 ```bash
-dotnet run --project src/Kazo.Chess.Os   # a HackerOS with Chess in the Applications menu
+git clone --recurse-submodules https://github.com/Kazo-ca/HackerOs-App-Chess.git
+cd HackerOs-App-Chess
+dotnet run --project src/Kazo.Chess.Os -c Release   # a HackerOS with Chess in the Applications menu
 ```
+
+The repository follows the `hackeros-solution` template: `external/HackerOs` is HackerOS as a
+submodule on its release tag (2.2.0), which sets the version of every HackerOS package.
 
 - Plan: [English](doc/en/plan.md) · [Français](doc/fr/plan.md)
 - Architecture, build and tests: [English](doc/en/architecture.md) · [Français](doc/fr/architecture.md)
