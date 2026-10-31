@@ -1,3 +1,4 @@
+@using Kazo.Chess.Clock
 @using Kazo.Chess.Components
 @using Kazo.Chess.Game
 @using Kazo.Chess.Model
@@ -8,6 +9,14 @@
         <span class="chess-brand" aria-hidden="true">♞</span>
         <span class="chess-title">@L["AppTitle"]</span>
         <span class="toolbar-spacer"></span>
+        <button type="button" class="toolbar-button icon" title="@L["Undo"]" aria-label="@L["Undo"]"
+                disabled="@(!_session.CanUndo || _dialogOpen)" @onclick="UndoAsync">
+            <span aria-hidden="true">↶</span><span class="label">@L["Undo"]</span>
+        </button>
+        <button type="button" class="toolbar-button icon" title="@L["Flip"]" aria-label="@L["Flip"]"
+                aria-pressed="@(_flipped ? "true" : "false")" disabled="@(Snapshot is null)" @onclick="Flip">
+            <span aria-hidden="true">⇅</span><span class="label">@L["Flip"]</span>
+        </button>
         <button type="button" class="toolbar-button" disabled="@(Snapshot is null || _dialogOpen)" @onclick="OpenNewGameDialog"
                 @ref="_newGameButton">
             @L["NewGame"]
@@ -19,7 +28,7 @@
             <div class="board-frame">
                 @if (Snapshot is not null)
                 {
-                    <ChessBoard Snapshot="Snapshot" Orientation="_session.Setup.Orientation" Mover="Mover" OnMove="PlayAsync"
+                    <ChessBoard Snapshot="Snapshot" Orientation="Orientation" Mover="Mover" OnMove="PlayAsync"
                                 OnScriptError="OnBoardScriptError" />
                 }
                 else
@@ -32,8 +41,9 @@
         <aside class="side-panel">
             @if (Snapshot is not null)
             {
-                GameStatus status = GameStatus.Of(Snapshot);
-                <div class="status-card @(Snapshot.IsOver ? "over" : string.Empty)" role="status" aria-live="polite">
+                GameStatus status = GameStatus.Of(Snapshot, _session.TimedOut);
+                @PlayerCard(Orientation.Opponent())
+                <div class="status-card @(_session.IsOver ? "over" : string.Empty)" role="status" aria-live="polite">
                     @if (status.Side is { } side)
                     {
                         <span class="side-token @(side == PieceColor.White ? "white" : "black")" aria-hidden="true"></span>
@@ -44,24 +54,42 @@
                 {
                     <p class="thinking" role="status">@L["ComputerThinking"]</p>
                 }
-                <dl class="players">
-                    <dt><span class="side-token white" aria-hidden="true"></span>@L["SideWhite"]</dt>
-                    <dd>@PlayerName(PieceColor.White)</dd>
-                    <dt><span class="side-token black" aria-hidden="true"></span>@L["SideBlack"]</dt>
-                    <dd>@PlayerName(PieceColor.Black)</dd>
-                </dl>
                 @if (_error is not null)
                 {
                     <p class="error-note" role="alert">@_error</p>
                 }
-                <p class="move-count">@L["MoveCount", (Snapshot.History.Count / 2) + 1]</p>
+                <MoveList History="Snapshot.History" Label="@L["MovesLabel"]" EmptyText="@L["NoMoves"]" />
+                @PlayerCard(Orientation)
             }
         </aside>
     </main>
 
     @if (_dialogOpen)
     {
-        <NewGameDialog Initial="_lastChoice" AbandonsGame="@(Snapshot is { IsOver: false, History.Count: > 0 })"
+        <NewGameDialog Initial="_lastChoice" AbandonsGame="@(Snapshot is { History.Count: > 0 } && !_session.IsOver)"
                        OnStart="StartNewGameAsync" OnCancel="CloseNewGameDialog" />
     }
 </div>
+
+@code {
+    // One player: their side, their name and, with a clock, their time (the running one lit up).
+    private RenderFragment PlayerCard(PieceColor side) => __builder =>
+    {
+        ChessClock? clock = _session.Clock;
+        TimeSpan? remaining = clock?.Remaining(side);
+        bool running = clock?.Running == side;
+        bool low = remaining is { } left && left < ClockFormat.TenthsBelow;
+        <div class="player-card @(side == PieceColor.White ? "white" : "black") @(running ? "running" : string.Empty)">
+            <span class="side-token @(side == PieceColor.White ? "white" : "black")" aria-hidden="true"></span>
+            <span class="player-name">
+                <span class="player-side">@SideName(side)</span>
+                <span class="player-who">@PlayerName(side)</span>
+            </span>
+            @if (remaining is { } time)
+            {
+                <span class="clock-face @(low ? "low" : string.Empty)" role="timer"
+                      aria-label="@L["ClockLabel", SideName(side), ClockFormat.Format(time)]">@ClockFormat.Format(time)</span>
+            }
+        </div>
+    };
+}

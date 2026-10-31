@@ -86,6 +86,19 @@ public sealed class ChessJsRulesTests
         Assert.True(js.Module.Disposed);
     }
 
+    [Fact]
+    public async Task UndoAsync_AsksForThePliesAndReadsThePosition()
+    {
+        var js = new FakeRuntime();
+        await using var rules = new ChessJsRules(js);
+        await rules.NewGameAsync();
+
+        GameSnapshot snapshot = await rules.UndoAsync(2);
+
+        Assert.Equal(["undo2"], js.Module.Games[0].Moves);
+        Assert.Equal(PieceColor.White, snapshot.Turn);
+    }
+
     private sealed class FakeRuntime : IJSRuntime
     {
         public FakeModule Module { get; } = new();
@@ -154,6 +167,9 @@ public sealed class ChessJsRulesTests
             switch (identifier)
             {
                 case "snapshot":
+                    return ValueTask.FromResult((TValue)(object)snapshot);
+                case "undo":
+                    Moves.Add($"undo{args![0]}");
                     return ValueTask.FromResult((TValue)(object)snapshot);
                 case "move":
                     Moves.Add($"{args![0]}{args[1]}{args[2]}");

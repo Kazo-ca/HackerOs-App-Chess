@@ -11,18 +11,24 @@ using Microsoft.JSInterop;
 namespace Kazo.Chess;
 
 /// <summary>
-/// The Chess window. It shows the <see cref="GameSession"/> (the rules, and Stockfish when the
-/// computer plays) and forwards what the player does: the moves completed on the
-/// <see cref="Components.ChessBoard"/> and the choices of the <see cref="NewGameDialog"/>.
+/// The Chess window. It shows the <see cref="GameSession"/> (the rules, Stockfish when the computer
+/// plays, the clock) and forwards what the player does: the moves completed on the
+/// <see cref="Components.ChessBoard"/>, undo, flip, and the choices of the <see cref="NewGameDialog"/>.
 /// </summary>
 public sealed partial class ChessWindow : IAsyncDisposable
 {
+    // How often a running clock is redrawn and checked for a fallen flag: tenths are shown below
+    // ten seconds, so a tenth of a second is the face's resolution.
+    private static readonly TimeSpan ClockTick = TimeSpan.FromMilliseconds(100);
+
     private GameSession _session = default!;
     private NewGameChoice _lastChoice = NewGameChoice.Default;
     private bool _dialogOpen;
+    private bool _flipped;
     private bool _focusNewGameButton;
     private ElementReference _newGameButton;
     private string? _error;
+    private Timer? _clockTimer;
     private IStringLocalizer<Strings>? _localizer;
 
     [Inject]
@@ -32,12 +38,21 @@ public sealed partial class ChessWindow : IAsyncDisposable
 
     private GameSnapshot? Snapshot => _session.Snapshot;
 
+    // The side at the bottom: the player's against the computer, White between two players;
+    // "Flip board" turns it around until the next game.
+    private PieceColor Orientation => _flipped ? _session.Setup.Orientation.Opponent() : _session.Setup.Orientation;
+
     // While the dialog is open the board waits: no move is lost behind it.
     private PieceColor? Mover => _dialogOpen ? null : _session.Mover;
 
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
+        if (_clockTimer is not null)
+        {
+            await _clockTimer.DisposeAsync();
+        }
+
         _session.Changed -= OnSessionChanged;
         await _session.DisposeAsync();
     }
@@ -47,6 +62,7 @@ public sealed partial class ChessWindow : IAsyncDisposable
     {
         _session = new GameSession(new ChessJsRules(JavaScript), () => new StockfishEngine(JavaScript));
         _session.Changed += OnSessionChanged;
+        _clockTimer = new Timer(_ => _ = InvokeAsync(OnClockTick), null, ClockTick, ClockTick);
     }
 
     /// <inheritdoc />
@@ -81,15 +97,33 @@ public sealed partial class ChessWindow : IAsyncDisposable
     {
         _lastChoice = choice;
         CloseNewGameDialog();
+        _flipped = false;
         GameSetup setup = choice.Mode == GameMode.AgainstComputer
-            ? GameSetup.AgainstComputer(choice.Level, choice.Color, Random.Shared)
-            : GameSetup.TwoPlayers;
+            ? GameSetup.AgainstComputer(choice.Level, choice.Color, Random.Shared, choice.TimeControl)
+            : GameSetup.TwoPlayers with { Clock = choice.TimeControl };
         return RunGameAsync(() => _session.StartAsync(setup, AppContext.CancellationToken));
     }
 
     // The player's move, then the computer's reply when it plays; a refused move changes nothing.
     private Task PlayAsync(MoveRequest move) =>
         RunGameAsync(() => _session.PlayAsync(move, AppContext.CancellationToken));
+
+    private Task UndoAsync() =>
+        RunGameAsync(() => _session.UndoAsync(AppContext.CancellationToken));
+
+    private void Flip() => _flipped = !_flipped;
+
+    // Only a running clock needs redrawing; the session ends the game when a flag falls.
+    private void OnClockTick()
+    {
+        if (_session.Clock?.Running is null)
+        {
+            return;
+        }
+
+        _session.CheckTime();
+        StateHasChanged();
+    }
 
     // Every call into the game: a failure is shown in the window (the game stays as it was), and the
     // window closing mid-call (its token cancelled) is no error at all.

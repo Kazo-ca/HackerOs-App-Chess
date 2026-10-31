@@ -34,7 +34,12 @@ public sealed record LegalMove(Square From, Square To, string San, PieceType? Pr
 /// <param name="To">Square the piece reached.</param>
 /// <param name="San">Standard algebraic notation.</param>
 /// <param name="Color">The side that played it.</param>
-public sealed record PlayedMove(Square From, Square To, string San, PieceColor Color);
+/// <param name="Promotion">The piece a pawn became, for a promotion; otherwise <see langword="null"/>.</param>
+public sealed record PlayedMove(Square From, Square To, string San, PieceColor Color, PieceType? Promotion = null)
+{
+    /// <summary>Gets the move in UCI notation (<c>e2e4</c>, <c>e7e8q</c>), as the engine replays it.</summary>
+    public string Uci => new MoveRequest(From, To, Promotion).Uci;
+}
 
 /// <summary>
 /// Everything the window shows about a position, read from chess.js in one call after each move.
@@ -50,6 +55,7 @@ public sealed class GameSnapshot
     /// <param name="outcome">Whether the game goes on, or how it ended.</param>
     /// <param name="legalMoves">The moves the side to move may play (empty once the game is over).</param>
     /// <param name="history">The moves played since the starting position, oldest first.</param>
+    /// <param name="startFen">The position the game started from; <paramref name="fen"/> when <see langword="null"/>.</param>
     /// <exception cref="FormatException">The FEN placement is not valid.</exception>
     public GameSnapshot(
         string fen,
@@ -57,11 +63,13 @@ public sealed class GameSnapshot
         bool inCheck,
         GameOutcome outcome,
         IReadOnlyList<LegalMove> legalMoves,
-        IReadOnlyList<PlayedMove> history)
+        IReadOnlyList<PlayedMove> history,
+        string? startFen = null)
     {
         ArgumentNullException.ThrowIfNull(legalMoves);
         ArgumentNullException.ThrowIfNull(history);
         Fen = fen;
+        StartFen = startFen ?? fen;
         Board = BoardPosition.FromFen(fen);
         Turn = turn;
         InCheck = inCheck;
@@ -72,6 +80,9 @@ public sealed class GameSnapshot
 
     /// <summary>Gets the position in Forsyth–Edwards Notation.</summary>
     public string Fen { get; }
+
+    /// <summary>Gets the position the game started from (the engine replays <see cref="History"/> from it).</summary>
+    public string StartFen { get; }
 
     /// <summary>Gets the pieces on the board, read from <see cref="Fen"/>.</summary>
     public BoardPosition Board { get; }

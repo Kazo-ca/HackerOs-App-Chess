@@ -1,5 +1,6 @@
 using HackerOs.AppSdk;
 using HackerOs.AppSdk.Globalization;
+using Kazo.Chess.Clock;
 using Kazo.Chess.Engine;
 using Kazo.Chess.Game;
 using Microsoft.AspNetCore.Components;
@@ -8,14 +9,54 @@ using Microsoft.Extensions.Localization;
 
 namespace Kazo.Chess.Components;
 
+/// <summary>The clocks the dialog offers (plan, decision Q32).</summary>
+public enum ClockChoice
+{
+    /// <summary>No clock.</summary>
+    None,
+
+    /// <summary>5 minutes per side, no increment.</summary>
+    Five,
+
+    /// <summary>10 minutes per side, no increment.</summary>
+    Ten,
+
+    /// <summary>15 minutes per side, 10 seconds per move.</summary>
+    FifteenPlusTen,
+
+    /// <summary>Minutes and increment of the player's choice.</summary>
+    Custom,
+}
+
 /// <summary>What the player chose in the new game dialog.</summary>
 /// <param name="Mode">Two players or against the computer.</param>
 /// <param name="Level">The computer's level.</param>
 /// <param name="Color">The side the player asked for against the computer.</param>
-public sealed record NewGameChoice(GameMode Mode, EngineLevel Level, ColorChoice Color)
+/// <param name="Clock">The clock.</param>
+/// <param name="CustomMinutes">Minutes per side of a custom clock.</param>
+/// <param name="CustomIncrementSeconds">Seconds per move of a custom clock.</param>
+public sealed record NewGameChoice(
+    GameMode Mode,
+    EngineLevel Level,
+    ColorChoice Color,
+    ClockChoice Clock = ClockChoice.None,
+    int CustomMinutes = 3,
+    int CustomIncrementSeconds = 2)
 {
-    /// <summary>Gets the choice shown the first time: two players, and Medium and White ready for the computer.</summary>
+    /// <summary>Gets the choice shown the first time: two players without a clock, and Medium and White ready for the computer.</summary>
     public static NewGameChoice Default { get; } = new(GameMode.TwoPlayers, EngineLevel.Medium, ColorChoice.White);
+
+    /// <summary>Gets the time control chosen, or <see langword="null"/> for no clock. Custom values are kept in range.</summary>
+    public TimeControl? TimeControl => Clock switch
+    {
+        ClockChoice.Five => Kazo.Chess.Clock.TimeControl.Presets[0],
+        ClockChoice.Ten => Kazo.Chess.Clock.TimeControl.Presets[1],
+        ClockChoice.FifteenPlusTen => Kazo.Chess.Clock.TimeControl.Presets[2],
+        ClockChoice.Custom => Kazo.Chess.Clock.TimeControl.Of(
+            Math.Clamp(CustomMinutes, Kazo.Chess.Clock.TimeControl.MinMinutes, Kazo.Chess.Clock.TimeControl.MaxMinutes),
+            Math.Clamp(CustomIncrementSeconds, 0, Kazo.Chess.Clock.TimeControl.MaxIncrementSeconds)),
+        _ => null,
+    };
 }
 
 /// <summary>
@@ -29,6 +70,9 @@ public sealed partial class NewGameDialog
     private GameMode _mode;
     private EngineLevel _level;
     private ColorChoice _color;
+    private ClockChoice _clock;
+    private int _customMinutes;
+    private int _customIncrement;
     private ElementReference _twoPlayersInput;
     private ElementReference _computerInput;
     private ElementReference _startButton;
@@ -59,7 +103,8 @@ public sealed partial class NewGameDialog
         : throw new InvalidOperationException("The new game dialog must be hosted in the Chess window.");
 
     /// <inheritdoc />
-    protected override void OnInitialized() => (_mode, _level, _color) = Initial;
+    protected override void OnInitialized() =>
+        (_mode, _level, _color, _clock, _customMinutes, _customIncrement) = Initial;
 
     /// <inheritdoc />
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -76,7 +121,15 @@ public sealed partial class NewGameDialog
 
     private async Task FocusLastAsync() => await _startButton.FocusAsync();
 
-    private Task StartAsync() => OnStart.InvokeAsync(new NewGameChoice(_mode, _level, _color));
+    private Task StartAsync() =>
+        OnStart.InvokeAsync(new NewGameChoice(_mode, _level, _color, _clock, _customMinutes, _customIncrement));
+
+    private string ClockName(ClockChoice clock) => clock switch
+    {
+        ClockChoice.None => L["ClockNone"],
+        ClockChoice.Custom => L["ClockCustom"],
+        _ => (Initial with { Clock = clock }).TimeControl!.Label,
+    };
 
     private Task OnKeyDownAsync(KeyboardEventArgs args) =>
         args.Key == "Escape" ? OnCancel.InvokeAsync() : Task.CompletedTask;

@@ -8,6 +8,8 @@ public sealed class StockfishEngineTests
 {
     private const string StartFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
+    private static readonly EnginePosition Start = new(StartFen, []);
+
     [Fact]
     public async Task TheWorkerStartsOnceForEveryCall()
     {
@@ -15,8 +17,8 @@ public sealed class StockfishEngineTests
         await using var engine = new StockfishEngine(js);
 
         await engine.NewGameAsync();
-        await engine.BestMoveAsync(StartFen, EngineLevel.Easy);
-        await engine.BestMoveAsync(StartFen, EngineLevel.Easy);
+        await engine.BestMoveAsync(Start, EngineLevel.Easy);
+        await engine.BestMoveAsync(Start, EngineLevel.Easy);
 
         Assert.Equal(1, js.Imports);
         Assert.Equal(StockfishEngine.ModulePath, js.ImportedPath);
@@ -31,11 +33,11 @@ public sealed class StockfishEngineTests
         await using var engine = new StockfishEngine(js);
         js.Module.Worker.Reply = "bestmove g1f3 ponder d7d5";
 
-        MoveRequest? move = await engine.BestMoveAsync(StartFen, EngineLevel.Hard);
+        MoveRequest? move = await engine.BestMoveAsync(Start, EngineLevel.Hard);
 
         Assert.Equal("g1f3", move!.Uci);
         object?[] args = js.Module.Worker.Calls.Single().Args;
-        Assert.Equal([StartFen, 15, EngineLevel.Hard.MoveTimeMs()], args);
+        Assert.Equal([$"position fen {StartFen}", 15, EngineLevel.Hard.MoveTimeMs()], args);
     }
 
     [Fact]
@@ -45,7 +47,7 @@ public sealed class StockfishEngineTests
         await using var engine = new StockfishEngine(js);
         js.Module.Worker.Reply = "bestmove (none)";
 
-        Assert.Null(await engine.BestMoveAsync(StartFen, EngineLevel.Beginner));
+        Assert.Null(await engine.BestMoveAsync(Start, EngineLevel.Beginner));
     }
 
     [Fact]
@@ -57,7 +59,7 @@ public sealed class StockfishEngineTests
         js.Module.Worker.PendingReply = reply;
         using var cancel = new CancellationTokenSource();
 
-        Task<MoveRequest?> search = engine.BestMoveAsync(StartFen, EngineLevel.Expert, cancel.Token);
+        Task<MoveRequest?> search = engine.BestMoveAsync(Start, EngineLevel.Expert, cancel.Token);
         await js.Module.Worker.Searching.Task;
         await cancel.CancelAsync();
         // Stockfish answers a stop with the best move found so far.
@@ -74,7 +76,7 @@ public sealed class StockfishEngineTests
         await using var engine = new StockfishEngine(js);
         await engine.NewGameAsync();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => engine.BestMoveAsync(StartFen, EngineLevel.Easy, new CancellationToken(canceled: true)));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => engine.BestMoveAsync(Start, EngineLevel.Easy, new CancellationToken(canceled: true)));
 
         Assert.DoesNotContain("bestMove", js.Module.Worker.Calls.Select(call => call.Name));
     }
@@ -123,7 +125,23 @@ public sealed class StockfishEngineTests
     {
         await using var engine = new StockfishEngine(new FakeRuntime());
 
-        await Assert.ThrowsAsync<ArgumentException>(() => engine.BestMoveAsync(" ", EngineLevel.Easy));
+        await Assert.ThrowsAsync<ArgumentException>(() => engine.BestMoveAsync(new EnginePosition(" ", []), EngineLevel.Easy));
+    }
+
+    [Fact]
+    public void ThePositionCommand_ReplaysTheMovesFromTheStart()
+    {
+        Assert.Equal($"position fen {StartFen}", Start.Command);
+        Assert.Equal($"position fen {StartFen} moves e2e4 e7e5", new EnginePosition(StartFen, ["e2e4", "e7e5"]).Command);
+    }
+
+    [Fact]
+    public void AnEnginePosition_IsReadFromASnapshot()
+    {
+        EnginePosition position = EnginePosition.Of(Fixture.Snapshot("after-e4.json"));
+
+        Assert.Equal(StartFen, position.StartFen);
+        Assert.Equal(["e2e4"], position.Moves);
     }
 
     private sealed record Call(string Name, object?[] Args);

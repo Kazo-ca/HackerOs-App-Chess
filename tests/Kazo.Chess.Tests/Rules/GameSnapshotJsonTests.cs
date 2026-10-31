@@ -26,6 +26,8 @@ public sealed class GameSnapshotJsonTests
 
         Assert.Equal(PieceColor.Black, snapshot.Turn);
         Assert.Equal(new PlayedMove(Square.Parse("e2"), Square.Parse("e4"), "e4", PieceColor.White), snapshot.LastMove);
+        Assert.Equal("e2e4", snapshot.LastMove!.Uci);
+        Assert.Equal("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", snapshot.StartFen);
         Assert.Equal(new Piece(PieceColor.White, PieceType.Pawn), snapshot.Board[Square.Parse("e4")]);
     }
 

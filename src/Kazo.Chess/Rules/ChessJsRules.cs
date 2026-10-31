@@ -61,6 +61,14 @@ public sealed class ChessJsRules : IChessRules
     }
 
     /// <inheritdoc />
+    public async Task<GameSnapshot> UndoAsync(int plies, CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(plies);
+        IJSObjectReference game = _game ?? throw new InvalidOperationException("Start a game with NewGameAsync first.");
+        return GameSnapshotJson.Parse(await game.InvokeAsync<string>("undo", cancellationToken, plies));
+    }
+
+    /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
         IJSObjectReference? game = _game;

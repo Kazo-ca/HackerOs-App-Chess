@@ -1,3 +1,4 @@
+using Kazo.Chess.Clock;
 using Kazo.Chess.Engine;
 using Kazo.Chess.Game;
 using Kazo.Chess.Model;
@@ -296,12 +297,160 @@ public sealed class GameSessionTests
         Assert.True(rules.Disposed);
     }
 
-    // Rules that alternate the side to move and record the moves; the position itself does not matter.
+    [Fact]
+    public async Task TheEngineSeesTheWholeGame_NotOnlyTheLastPosition()
+    {
+        var rules = new FakeRules();
+        var engine = new FakeEngine { Replies = { Move("e7e5"), Move("b8c6") } };
+        await using var session = new GameSession(rules, () => engine);
+        await session.StartAsync(Computer(PieceColor.White));
+
+        await session.PlayAsync(Move("e2e4"));
+        await session.PlayAsync(Move("g1f3"));
+
+        Assert.Equal(["e2e4"], engine.Positions[0].Moves);
+        Assert.Equal(["e2e4", "e7e5", "g1f3"], engine.Positions[1].Moves);
+        Assert.Equal(Fixture.Snapshot("start.json").Fen, engine.Positions[1].StartFen);
+    }
+
+    [Fact]
+    public async Task Undo_BetweenTwoPlayers_TakesOneMoveBack()
+    {
+        var rules = new FakeRules();
+        await using var session = new GameSession(rules, () => new FakeEngine());
+        await session.StartAsync(GameSetup.TwoPlayers);
+        Assert.False(session.CanUndo);
+        await session.PlayAsync(Move("e2e4"));
+        await session.PlayAsync(Move("e7e5"));
+
+        Assert.True(await session.UndoAsync());
+
+        Assert.Equal([1], rules.Undone);
+        Assert.Equal(["e2e4"], rules.Played);
+        Assert.Equal(PieceColor.Black, session.Mover);
+    }
+
+    [Fact]
+    public async Task Undo_AgainstTheComputer_TakesItsReplyBackToo()
+    {
+        var rules = new FakeRules();
+        await using var session = new GameSession(rules, () => new FakeEngine { Replies = { Move("e7e5") } });
+        await session.StartAsync(Computer(PieceColor.White));
+        await session.PlayAsync(Move("e2e4"));
+
+        Assert.True(await session.UndoAsync());
+
+        Assert.Equal([2], rules.Undone);
+        Assert.Empty(rules.Played);
+        Assert.Equal(PieceColor.White, session.Mover);
+    }
+
+    [Fact]
+    public async Task Undo_NeedsAMoveOfThePlayer()
+    {
+        var rules = new FakeRules();
+        await using var session = new GameSession(rules, () => new FakeEngine { Replies = { Move("d2d4") } });
+
+        await session.StartAsync(Computer(PieceColor.Black));
+
+        Assert.Equal(["d2d4"], rules.Played);
+        Assert.False(session.CanUndo);
+        Assert.False(await session.UndoAsync());
+    }
+
+    [Fact]
+    public async Task Undo_IsOffWithAClock()
+    {
+        await using var session = new GameSession(new FakeRules(), () => new FakeEngine(), new ManualTime());
+        await session.StartAsync(GameSetup.TwoPlayers with { Clock = TimeControl.Of(5, 0) });
+        await session.PlayAsync(Move("e2e4"));
+
+        Assert.False(session.CanUndo);
+    }
+
+    [Fact]
+    public async Task TheClock_PassesFromSideToSideAsTheyMove()
+    {
+        var time = new ManualTime();
+        await using var session = new GameSession(new FakeRules(), () => new FakeEngine(), time);
+        await session.StartAsync(GameSetup.TwoPlayers with { Clock = TimeControl.Of(5, 3) });
+        Assert.Null(session.Clock!.Running);
+
+        await session.PlayAsync(Move("e2e4"));
+        time.Advance(TimeSpan.FromSeconds(20));
+        await session.PlayAsync(Move("e7e5"));
+
+        Assert.Equal(PieceColor.White, session.Clock.Running);
+        Assert.Equal(TimeSpan.FromSeconds(283), session.Clock.Remaining(PieceColor.Black));
+    }
+
+    [Fact]
+    public async Task AFallenFlag_EndsTheGameOnTime()
+    {
+        var time = new ManualTime();
+        var rules = new FakeRules();
+        await using var session = new GameSession(rules, () => new FakeEngine(), time);
+        await session.StartAsync(GameSetup.TwoPlayers with { Clock = TimeControl.Of(1, 0) });
+        await session.PlayAsync(Move("e2e4"));
+        time.Advance(TimeSpan.FromSeconds(61));
+
+        Assert.True(session.CheckTime());
+
+        Assert.Equal(PieceColor.Black, session.TimedOut);
+        Assert.True(session.IsOver);
+        Assert.Null(session.Mover);
+        Assert.True(session.Clock!.IsStopped);
+        Assert.False(await session.PlayAsync(Move("e7e5")));
+        Assert.Equal(["e2e4"], rules.Played);
+    }
+
+    [Fact]
+    public async Task TheComputersFlag_FallingWhileItThinks_StopsItsSearch()
+    {
+        var time = new ManualTime();
+        var rules = new FakeRules();
+        var engine = new FakeEngine { Hold = new TaskCompletionSource<MoveRequest?>() };
+        await using var session = new GameSession(rules, () => engine, time);
+        await session.StartAsync(Computer(PieceColor.White) with { Clock = TimeControl.Of(1, 0) });
+
+        Task reply = session.PlayAsync(Move("e2e4"));
+        await engine.Searching.Task;
+        time.Advance(TimeSpan.FromSeconds(61));
+        session.CheckTime();
+        await reply;
+
+        Assert.Equal(PieceColor.Black, session.TimedOut);
+        Assert.True(engine.Cancelled);
+        Assert.Equal(["e2e4"], rules.Played);
+    }
+
+    [Fact]
+    public async Task ANewGame_ComesWithAFreshClock()
+    {
+        var time = new ManualTime();
+        await using var session = new GameSession(new FakeRules(), () => new FakeEngine(), time);
+        await session.StartAsync(GameSetup.TwoPlayers with { Clock = TimeControl.Of(1, 0) });
+        await session.PlayAsync(Move("e2e4"));
+        time.Advance(TimeSpan.FromSeconds(61));
+        session.CheckTime();
+
+        await session.StartAsync(GameSetup.TwoPlayers);
+
+        Assert.Null(session.Clock);
+        Assert.Null(session.TimedOut);
+        Assert.Equal(PieceColor.White, session.Mover);
+    }
+
+    // Rules that alternate the side to move and record the moves; the board itself does not
+    // matter, the history does (undo and the engine's position read it).
     private sealed class FakeRules : IChessRules
     {
-        private static readonly GameSnapshot White = Fixture.Snapshot("start.json");
-        private static readonly GameSnapshot Black = Fixture.Snapshot("after-e4.json");
-        private GameSnapshot _current = White;
+        private static readonly GameSnapshot Start = Fixture.Snapshot("start.json");
+        private GameSnapshot _current = Start;
+
+        private GameSnapshot White => With(PieceColor.White);
+
+        private GameSnapshot Black => With(PieceColor.Black);
 
         public List<string> Played { get; } = [];
 
@@ -330,8 +479,20 @@ public sealed class GameSessionTests
             }
 
             NewGames++;
+            Played.Clear();
             _current = White;
             return _current;
+        }
+
+        // A snapshot whose history is the moves played, the side to move given.
+        private GameSnapshot With(PieceColor turn)
+        {
+            PlayedMove[] history = Played.Select((uci, index) =>
+            {
+                MoveRequest.TryParseUci(uci, out MoveRequest? move);
+                return new PlayedMove(move!.From, move.To, uci, index % 2 == 0 ? PieceColor.White : PieceColor.Black, move.Promotion);
+            }).ToArray();
+            return new GameSnapshot(Start.Fen, turn, false, GameOutcome.Ongoing, Start.LegalMoves, history);
         }
 
         public Task<GameSnapshot?> TryMoveAsync(MoveRequest move, CancellationToken cancellationToken = default)
@@ -341,9 +502,20 @@ public sealed class GameSessionTests
                 return Task.FromResult<GameSnapshot?>(null);
             }
 
+            PieceColor next = _current.Turn == PieceColor.White ? PieceColor.Black : PieceColor.White;
             Played.Add(move.Uci);
-            _current = _current.Turn == PieceColor.White ? Black : White;
+            _current = With(next);
             return Task.FromResult<GameSnapshot?>(_current);
+        }
+
+        public List<int> Undone { get; } = [];
+
+        public Task<GameSnapshot> UndoAsync(int plies, CancellationToken cancellationToken = default)
+        {
+            Undone.Add(plies);
+            Played.RemoveRange(Math.Max(0, Played.Count - plies), Math.Min(plies, Played.Count));
+            _current = With(Played.Count % 2 == 0 ? PieceColor.White : PieceColor.Black);
+            return Task.FromResult(_current);
         }
 
         public ValueTask DisposeAsync()
@@ -386,8 +558,11 @@ public sealed class GameSessionTests
             return Task.CompletedTask;
         }
 
-        public async Task<MoveRequest?> BestMoveAsync(string fen, EngineLevel level, CancellationToken cancellationToken = default)
+        public List<EnginePosition> Positions { get; } = [];
+
+        public async Task<MoveRequest?> BestMoveAsync(EnginePosition position, EngineLevel level, CancellationToken cancellationToken = default)
         {
+            Positions.Add(position);
             Levels.Add(level);
             Searches++;
             Searching.TrySetResult();

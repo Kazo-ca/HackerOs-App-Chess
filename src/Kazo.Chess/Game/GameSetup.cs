@@ -1,3 +1,4 @@
+using Kazo.Chess.Clock;
 using Kazo.Chess.Engine;
 using Kazo.Chess.Model;
 
@@ -26,11 +27,16 @@ public enum ColorChoice
     Random,
 }
 
-/// <summary>How a game is set up: the mode, and against the computer its level and the player's side.</summary>
+/// <summary>How a game is set up: the mode, against the computer its level and the player's side, and the clock.</summary>
 /// <param name="Mode">Two players or against the computer.</param>
 /// <param name="Level">The computer's level (ignored for two players).</param>
 /// <param name="PlayerColor">The player's side against the computer (ignored for two players).</param>
-public sealed record GameSetup(GameMode Mode, EngineLevel Level = EngineLevel.Medium, PieceColor PlayerColor = PieceColor.White)
+/// <param name="Clock">The time control, or <see langword="null"/> for a game without a clock.</param>
+public sealed record GameSetup(
+    GameMode Mode,
+    EngineLevel Level = EngineLevel.Medium,
+    PieceColor PlayerColor = PieceColor.White,
+    TimeControl? Clock = null)
 {
     /// <summary>Gets the setup of two players on the same screen.</summary>
     public static GameSetup TwoPlayers { get; } = new(GameMode.TwoPlayers);
@@ -39,7 +45,8 @@ public sealed record GameSetup(GameMode Mode, EngineLevel Level = EngineLevel.Me
     /// <param name="level">The computer's level.</param>
     /// <param name="choice">The side the player asked for.</param>
     /// <param name="random">The coin, for <see cref="ColorChoice.Random"/>.</param>
-    public static GameSetup AgainstComputer(EngineLevel level, ColorChoice choice, Random random)
+    /// <param name="clock">The time control, or <see langword="null"/> for no clock.</param>
+    public static GameSetup AgainstComputer(EngineLevel level, ColorChoice choice, Random random, TimeControl? clock = null)
     {
         ArgumentNullException.ThrowIfNull(random);
         PieceColor color = choice switch
@@ -48,7 +55,7 @@ public sealed record GameSetup(GameMode Mode, EngineLevel Level = EngineLevel.Me
             ColorChoice.Black => PieceColor.Black,
             _ => random.Next(2) == 0 ? PieceColor.White : PieceColor.Black,
         };
-        return new GameSetup(GameMode.AgainstComputer, level, color);
+        return new GameSetup(GameMode.AgainstComputer, level, color, clock);
     }
 
     /// <summary>Gets the computer's side, or <see langword="null"/> between two players.</summary>

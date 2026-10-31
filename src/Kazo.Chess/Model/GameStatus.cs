@@ -8,11 +8,20 @@ namespace Kazo.Chess.Model;
 /// <param name="Side">The side named by the text (to move, or winner), or <see langword="null"/>.</param>
 public sealed record GameStatus(string Key, PieceColor? Side)
 {
-    /// <summary>Describes a position.</summary>
+    /// <summary>Describes a position, and a fallen flag when the clock ended the game.</summary>
     /// <param name="snapshot">The position.</param>
-    public static GameStatus Of(GameSnapshot snapshot)
+    /// <param name="timedOut">The side whose time ran out, or <see langword="null"/>.</param>
+    public static GameStatus Of(GameSnapshot snapshot, PieceColor? timedOut = null)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
+        if (timedOut is { } flagged)
+        {
+            // Out of time, but the opponent has only its king left and could never mate: draw.
+            PieceColor opponent = flagged.Opponent();
+            bool loneKing = snapshot.Board.Pieces.All(entry => entry.Piece.Color != opponent || entry.Piece.Type == PieceType.King);
+            return loneKing ? new("StatusTimeOutDraw", null) : new("StatusTimeOut", opponent);
+        }
+
         return snapshot.Outcome switch
         {
             GameOutcome.Checkmate => new("StatusCheckmate", snapshot.Winner),

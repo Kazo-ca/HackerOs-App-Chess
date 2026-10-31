@@ -117,6 +117,38 @@ legend {
     outline-offset: 2px;
 }
 
+.custom-clock {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 6px;
+}
+
+.custom-clock label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.85rem;
+    color: var(--hos-text-secondary, #c9d1d9);
+}
+
+.custom-clock input {
+    width: 8em;
+    min-height: var(--hos-control-height, 30px);
+    padding: var(--hos-input-padding, 4px 8px);
+    background: var(--hos-input-bg, #0d1117);
+    color: var(--hos-input-color, inherit);
+    border: 1px solid var(--hos-input-border, var(--hos-border, #30363d));
+    border-radius: var(--hos-input-radius, 4px);
+    font: inherit;
+}
+
+.custom-clock input:focus-visible {
+    outline: none;
+    border-color: var(--hos-input-focus-border, var(--hos-accent, #42d392));
+    box-shadow: var(--hos-input-focus-ring, 0 0 0 2px var(--hos-accent-subtle, transparent));
+}
+
 .abandon-warning {
     margin: 0;
     color: var(--hos-warning, #e3b341);

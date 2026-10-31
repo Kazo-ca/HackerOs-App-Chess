@@ -13,7 +13,7 @@ const DEFAULT_TIMEOUTS = { handshakeMs: 20_000, searchMarginMs: 5_000 };
  * Starts the engine and waits until it answers.
  * @param {{ handshakeMs?: number, searchMarginMs?: number, workerUrl?: string | URL }} [options]
  *   Deadlines (the search deadline is its movetime plus the margin) and, for tests, the worker script.
- * @returns {Promise<{ bestMove: (fen: string, skillLevel: number, moveTimeMs: number) => Promise<string>,
+ * @returns {Promise<{ bestMove: (position: string, skillLevel: number, moveTimeMs: number) => Promise<string>,
  *                     newGame: () => Promise<string>, stop: () => void, terminate: () => void }>}
  *   Plain closures, not class methods: Blazor calls a function found on an object reference
  *   without binding `this`.
@@ -85,9 +85,10 @@ export async function createEngine(options = {}) {
 
     return {
         newGame: () => serialize(() => ask(['ucinewgame', 'isready'], line => line === 'readyok', handshakeMs)),
-        bestMove: (fen, skillLevel, moveTimeMs) => serialize(() => ask([
+        // `position` is the whole UCI command (`position fen <start> moves …`), built in C#.
+        bestMove: (position, skillLevel, moveTimeMs) => serialize(() => ask([
             `setoption name Skill Level value ${skillLevel}`,
-            `position fen ${fen}`,
+            position,
             `go movetime ${moveTimeMs}`,
         ], line => line.startsWith('bestmove'), moveTimeMs + searchMarginMs)),
         // Ends the current search early; its bestmove still arrives and settles the request.

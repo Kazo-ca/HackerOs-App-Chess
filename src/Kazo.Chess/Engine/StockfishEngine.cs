@@ -35,9 +35,10 @@ public sealed class StockfishEngine : IChessEngine
     }
 
     /// <inheritdoc />
-    public async Task<MoveRequest?> BestMoveAsync(string fen, EngineLevel level, CancellationToken cancellationToken = default)
+    public async Task<MoveRequest?> BestMoveAsync(EnginePosition position, EngineLevel level, CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(fen);
+        ArgumentNullException.ThrowIfNull(position);
+        ArgumentException.ThrowIfNullOrWhiteSpace(position.StartFen);
         IJSObjectReference engine = await StartAsync(cancellationToken);
 
         // Already cancelled: no search at all (a stop sent before the go would let it run its full time).
@@ -46,7 +47,7 @@ public sealed class StockfishEngine : IChessEngine
         // A cancelled search is stopped in the worker (its bestmove then comes at once); the token
         // is not passed to the interop call, so the reply is still read and the queue stays in order.
         await using CancellationTokenRegistration stop = cancellationToken.Register(() => _ = StopAsync(engine));
-        string line = await engine.InvokeAsync<string>("bestMove", fen, level.SkillLevel(), level.MoveTimeMs());
+        string line = await engine.InvokeAsync<string>("bestMove", position.Command, level.SkillLevel(), level.MoveTimeMs());
         cancellationToken.ThrowIfCancellationRequested();
         return ParseBestMove(line);
     }
