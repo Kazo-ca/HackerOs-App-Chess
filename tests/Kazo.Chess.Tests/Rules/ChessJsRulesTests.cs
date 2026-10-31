@@ -105,6 +105,15 @@ public sealed class ChessJsRulesTests
     }
 
     [Fact]
+    public async Task LoadPgnAsync_AModuleThatDoesNotLoad_IsNotCalledABadFile()
+    {
+        var js = new FakeRuntime { FailImport = true };
+        await using var rules = new ChessJsRules(js);
+
+        await Assert.ThrowsAsync<JSException>(() => rules.LoadPgnAsync("1. e4 *"));
+    }
+
+    [Fact]
     public async Task ExportPgnAsync_SendsTheTagsAsJson()
     {
         var js = new FakeRuntime();
@@ -138,10 +147,15 @@ public sealed class ChessJsRulesTests
 
         public string? ImportedPath { get; private set; }
 
+        public bool FailImport { get; set; }
+
+        public ValueTask<TValue> InvokeAsync<TValue>(string identifier, CancellationToken cancellationToken, object?[]? args) =>
+            FailImport ? throw new JSException("Failed to fetch dynamically imported module") : Import<TValue>(identifier, args);
+
         public ValueTask<TValue> InvokeAsync<TValue>(string identifier, object?[]? args) =>
             InvokeAsync<TValue>(identifier, CancellationToken.None, args);
 
-        public ValueTask<TValue> InvokeAsync<TValue>(string identifier, CancellationToken cancellationToken, object?[]? args)
+        private ValueTask<TValue> Import<TValue>(string identifier, object?[]? args)
         {
             Assert.Equal("import", identifier);
             Imports++;

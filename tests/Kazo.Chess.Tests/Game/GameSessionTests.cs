@@ -503,6 +503,35 @@ public sealed class GameSessionTests
     }
 
     [Fact]
+    public async Task ALoadThatFailsWhileTheComputerThinks_LetsItTakeItsTurnAgain()
+    {
+        var rules = new FakeRules();
+        var engine = new FakeEngine { Hold = new TaskCompletionSource<MoveRequest?>(), Replies = { Move("d2d4") } };
+        await using var session = new GameSession(rules, () => engine);
+        Task first = session.StartAsync(Computer(PieceColor.Black));
+        await engine.Searching.Task;
+
+        await Assert.ThrowsAsync<FormatException>(() => session.LoadAsync("bad"));
+        await first;
+
+        Assert.Equal(["d2d4"], rules.Played);
+        Assert.Equal(PieceColor.Black, session.Mover);
+    }
+
+    [Fact]
+    public async Task LoadAsync_RefusesAFileTooLargeToBeAGame()
+    {
+        var rules = new FakeRules();
+        await using var session = new GameSession(rules, () => new FakeEngine());
+        await session.StartAsync(GameSetup.TwoPlayers);
+
+        FormatException error = await Assert.ThrowsAsync<FormatException>(() => session.LoadAsync(new string(' ', GameSession.MaxPgnLength + 1)));
+
+        Assert.Contains("64 KB", error.Message, StringComparison.Ordinal);
+        Assert.Equal(PieceColor.White, session.Mover);
+    }
+
+    [Fact]
     public async Task AGameSavedAsResigned_IsOverUntilAMoveIsTakenBack()
     {
         var rules = new FakeRules { Recorded = "1-0" };

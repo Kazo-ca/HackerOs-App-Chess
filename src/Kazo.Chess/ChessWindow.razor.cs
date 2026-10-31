@@ -79,7 +79,10 @@ public sealed partial class ChessWindow : IAsyncDisposable
             // Opened on a .pgn file (a double-click, "Open with"): that game, otherwise a new one.
             if (LaunchFile is not { } file || !await LoadFileAsync(file.Value))
             {
+                // A launch file that could not be opened keeps its message over the new game.
+                string? launchError = _error;
                 await RunGameAsync(() => _session.StartAsync(GameSetup.TwoPlayers, AppContext.CancellationToken));
+                _error ??= launchError;
             }
 
             // Nothing renders after OnAfterRender on its own: show the first game, or why it failed.
@@ -107,12 +110,16 @@ public sealed partial class ChessWindow : IAsyncDisposable
     {
         _lastChoice = choice;
         CloseNewGameDialog();
-        _flipped = false;
-        await SetDocumentAsync(null);
         GameSetup setup = choice.Mode == GameMode.AgainstComputer
             ? GameSetup.AgainstComputer(choice.Level, choice.Color, Random.Shared, choice.TimeControl)
             : GameSetup.TwoPlayers with { Clock = choice.TimeControl };
         await RunGameAsync(() => _session.StartAsync(setup, AppContext.CancellationToken));
+        if (_error is null)
+        {
+            // The new game is on the board: it is no longer the saved one.
+            _flipped = false;
+            await SetDocumentAsync(null);
+        }
     }
 
     // Open a saved game: the current one is abandoned only once the player confirms and the file reads.
@@ -158,31 +165,35 @@ public sealed partial class ChessWindow : IAsyncDisposable
 
         string path = target.Path.Value;
         string name = HackPath.GetFileName(path);
-        _documentDirectory = HackPath.GetDirectoryName(path);
         try
         {
             string pgn = await _session.ExportPgnAsync(Today, AppContext.UserLoginName, AppContext.CancellationToken);
             await HackFile.WriteAllTextAsync(path, pgn, AppContext.CancellationToken);
+            RememberFolder(path);
             await SetDocumentAsync(name);
             _error = null;
             _notice = L["Saved", name];
         }
-        catch (Exception exception) when (exception is HackIOException or HackUnauthorizedAccessException)
+        catch (Exception exception) when (exception is HackIOException or HackUnauthorizedAccessException or JSException)
         {
             _error = L["FileFailed", name, exception.Message];
         }
     }
+
+    // The next dialog opens where the last game was read or written (never on an empty path).
+    private void RememberFolder(string path) =>
+        _documentDirectory = HackPath.GetDirectoryName(path) is { Length: > 0 } folder ? folder : _documentDirectory;
 
     // Reads a .pgn file and opens its game; a file that does not read, or is not a game, leaves the
     // current game as it was and says why.
     private async Task<bool> LoadFileAsync(string path)
     {
         string name = HackPath.GetFileName(path);
-        _documentDirectory = HackPath.GetDirectoryName(path);
         try
         {
             string pgn = await HackFile.ReadAllTextAsync(path, AppContext.CancellationToken);
             await _session.LoadAsync(pgn, AppContext.CancellationToken);
+            RememberFolder(path);
             _flipped = false;
             await SetDocumentAsync(name);
             _error = null;

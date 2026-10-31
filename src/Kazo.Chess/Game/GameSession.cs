@@ -200,13 +200,21 @@ public sealed class GameSession : IAsyncDisposable
     /// </summary>
     /// <param name="pgn">The text of a .pgn file.</param>
     /// <param name="cancellationToken">Cancels the call (the window closing).</param>
-    /// <exception cref="FormatException">The text is not a valid game.</exception>
+    /// <exception cref="FormatException">The text is not a valid game, or is over <see cref="MaxPgnLength"/> characters.</exception>
     public async Task LoadAsync(string pgn, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(pgn);
-        Interlocked.Increment(ref _generation);
+        if (pgn.Length > MaxPgnLength)
+        {
+            // A saved game takes a few kilobytes; chess.js runs on the page's thread, and a huge
+            // file would freeze the OS for seconds before failing.
+            throw new FormatException($"The file is larger than {MaxPgnLength / 1024} KB.");
+        }
+
+        int generation = Interlocked.Increment(ref _generation);
         await _search.CancelAsync();
         await _gate.WaitAsync(cancellationToken);
+        ExceptionDispatchInfo? failure = null;
         try
         {
             _search.Dispose();
@@ -219,11 +227,26 @@ public sealed class GameSession : IAsyncDisposable
             TimedOut = null;
             RecordedResult = !snapshot.IsOver && snapshot.RecordedResult != PgnTags.Ongoing ? snapshot.RecordedResult : null;
         }
+        catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            failure = ExceptionDispatchInfo.Capture(exception);
+        }
         finally
         {
             ReleaseGate(busy: false);
         }
+
+        if (failure is not null)
+        {
+            // The current game goes on: if the computer was thinking, its search was cancelled for
+            // nothing, so it takes its turn again before the failure is reported.
+            await ResumeAfterFailedStartAsync(generation, cancellationToken);
+            failure.Throw();
+        }
     }
+
+    /// <summary>The largest .pgn text <see cref="LoadAsync"/> accepts, in characters (64 KB).</summary>
+    public const int MaxPgnLength = 64 * 1024;
 
     /// <summary>Writes the current game as PGN, its result included.</summary>
     /// <param name="date">The day to write in the <c>Date</c> tag.</param>
@@ -232,20 +255,22 @@ public sealed class GameSession : IAsyncDisposable
     /// <returns>The text of a .pgn file.</returns>
     public async Task<string> ExportPgnAsync(DateOnly date, string playerName, CancellationToken cancellationToken = default)
     {
-        GameSnapshot snapshot = Snapshot ?? throw new InvalidOperationException("No game to save yet.");
-        string engine = $"Stockfish 19 lite (Skill {Setup.Level.SkillLevel()})";
-        string Name(PieceColor side) => Setup.Mode == GameMode.TwoPlayers ? "?" : side == Setup.ComputerColor ? engine : playerName;
-        var tags = new PgnTags(
-            "Casual game",
-            "HackerOS",
-            PgnTags.FormatDate(date),
-            Name(PieceColor.White),
-            Name(PieceColor.Black),
-            PgnTags.ResultOf(snapshot, TimedOut, RecordedResult));
-
+        // The tags are read behind the gate, with the moves: a computer's mating move landing while
+        // the save waited is in both.
         await _gate.WaitAsync(cancellationToken);
         try
         {
+            GameSnapshot snapshot = Snapshot ?? throw new InvalidOperationException("No game to save yet.");
+            GameSetup setup = Setup;
+            string engine = $"Stockfish 19 lite (Skill {setup.Level.SkillLevel()})";
+            string Name(PieceColor side) => setup.Mode == GameMode.TwoPlayers ? "?" : side == setup.ComputerColor ? engine : playerName;
+            var tags = new PgnTags(
+                "Casual game",
+                "HackerOS",
+                PgnTags.FormatDate(date),
+                Name(PieceColor.White),
+                Name(PieceColor.Black),
+                PgnTags.ResultOf(snapshot, TimedOut, RecordedResult));
             return await _rules.ExportPgnAsync(tags, cancellationToken);
         }
         finally

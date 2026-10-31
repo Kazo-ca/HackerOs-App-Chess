@@ -5,8 +5,8 @@ namespace Kazo.Chess.Pgn;
 
 /// <summary>
 /// The tags a saved game carries (PGN's "seven tag roster"; <c>Round</c> is always <c>?</c>).
-/// Values are written as is: PGN escapes nothing but quotes and backslashes, which never appear
-/// in what the app writes.
+/// The rules module cleans every value before writing it (one line, no quote or backslash, at
+/// most 255 characters), so a login name such as <c>Jo"hn</c> cannot break the file.
 /// </summary>
 /// <param name="Event">What the game was: always <c>Casual game</c>.</param>
 /// <param name="Site">Where it was played: <c>HackerOS</c>.</param>

@@ -35,13 +35,16 @@ public sealed class ChessJsRules : IChessRules
     public async Task<GameSnapshot> LoadPgnAsync(string pgn, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(pgn);
+
+        // The module first: a failure to load it is not the file's fault.
+        _module ??= await _javaScript.InvokeAsync<IJSObjectReference>("import", cancellationToken, ModulePath);
         try
         {
             return await ReplaceGameAsync("loadGame", pgn, cancellationToken);
         }
         catch (JSException exception)
         {
-            // chess.js names what it could not read ("Invalid move in PGN: e5").
+            // The rules module names what it could not read ("Invalid move in PGN: e5").
             throw new FormatException(exception.Message, exception);
         }
     }

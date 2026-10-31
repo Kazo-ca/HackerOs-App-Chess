@@ -118,3 +118,44 @@ test('a game from a set-up position keeps that position as its start', () => {
 test('a text that is not a game is refused', () => {
     assert.throws(() => loadGame('1. e5'), /Invalid move in PGN: e5/);
 });
+
+test('tag values are cleaned so a hostile name cannot break the file', () => {
+    const game = createGame();
+    game.move('e2', 'e4');
+    const pgn = game.pgn(JSON.stringify({ White: 'Jo"hn\\x', Black: 'a\nb]\n[Result "1-0"]\n\n1. e4 1-0', Result: '' }));
+
+    assert.match(pgn, /\[White "Jo'hn\/x"\]/);
+    assert.equal((pgn.match(/^\[Result /gm) ?? []).length, 1);
+    assert.match(pgn, /\[Result "\*"\]/);
+    const back = read(loadGame(pgn).snapshot());
+    assert.equal(back.history.length, 1);
+});
+
+test('a long tag value is cut at 255 characters', () => {
+    const pgn = createGame().pgn(JSON.stringify({ White: 'x'.repeat(1000) }));
+    assert.match(pgn, new RegExp(`\\[White "x{255}"\\]`));
+});
+
+test('of a collection, the first game is loaded', () => {
+    const collection = '[Event "One"]\n[Result "*"]\n\n1. e4 e5 *\n\n[Event "Two"]\n[Result "*"]\n\n1. d4 *\n';
+    const snapshot = read(loadGame(collection).snapshot());
+    assert.deepEqual(snapshot.history.map(move => move.san), ['e4', 'e5']);
+});
+
+test('a text the parser cannot read gets a readable message', () => {
+    assert.throws(() => loadGame('[Event "x"\n\n1. e4'), /^Error: The text is not a valid PGN game\.$/);
+});
+
+test('a game longer than 1000 half-moves is refused', () => {
+    const shuffle = [];
+    for (let move = 1; move <= 260; move++) {
+        shuffle.push(`${move}. ${move % 2 ? 'Nf3 Nf6' : 'Ng1 Ng8'}`);
+    }
+    // 520 half-moves pass; the same twice over do not.
+    assert.equal(read(loadGame(`${shuffle.join(' ')} *`).snapshot()).history.length, 520);
+    const long = [];
+    for (let move = 1; move <= 520; move++) {
+        long.push(`${move}. ${move % 2 ? 'Nf3 Nf6' : 'Ng1 Ng8'}`);
+    }
+    assert.throws(() => loadGame(`${long.join(' ')} *`), /longer than 1000 half-moves/);
+});
