@@ -21,9 +21,6 @@
   <data name="BoardRole" xml:space="preserve">
     <value>chessboard</value>
   </data>
-  <data name="ConfirmNewGame" xml:space="preserve">
-    <value>Abandon the current game and start a new one?</value>
-  </data>
   <data name="CursorDescription" xml:space="preserve">
     <value>{0}: {1}</value>
   </data>
@@ -81,9 +78,6 @@
   <data name="PromotionTitle" xml:space="preserve">
     <value>Promote to</value>
   </data>
-  <data name="RulesFailed" xml:space="preserve">
-    <value>The rules of the game could not be loaded: {0}</value>
-  </data>
   <data name="SideBlack" xml:space="preserve">
     <value>Black</value>
   </data>
@@ -119,5 +113,62 @@
   </data>
   <data name="PointerUnavailable" xml:space="preserve">
     <value>The mouse and touch input could not load ({0}); the keyboard still plays.</value>
+  </data>
+  <data name="ModeLegend" xml:space="preserve">
+    <value>Players</value>
+  </data>
+  <data name="ModeTwoPlayers" xml:space="preserve">
+    <value>Two players on this screen</value>
+  </data>
+  <data name="ModeComputer" xml:space="preserve">
+    <value>Against the computer</value>
+  </data>
+  <data name="LevelLegend" xml:space="preserve">
+    <value>Computer level</value>
+  </data>
+  <data name="LevelBeginner" xml:space="preserve">
+    <value>Beginner</value>
+  </data>
+  <data name="LevelEasy" xml:space="preserve">
+    <value>Easy</value>
+  </data>
+  <data name="LevelMedium" xml:space="preserve">
+    <value>Medium</value>
+  </data>
+  <data name="LevelHard" xml:space="preserve">
+    <value>Hard</value>
+  </data>
+  <data name="LevelExpert" xml:space="preserve">
+    <value>Expert</value>
+  </data>
+  <data name="ColorLegend" xml:space="preserve">
+    <value>Your pieces</value>
+  </data>
+  <data name="ColorWhite" xml:space="preserve">
+    <value>White</value>
+  </data>
+  <data name="ColorBlack" xml:space="preserve">
+    <value>Black</value>
+  </data>
+  <data name="ColorRandom" xml:space="preserve">
+    <value>Random</value>
+  </data>
+  <data name="AbandonWarning" xml:space="preserve">
+    <value>The current game will be abandoned.</value>
+  </data>
+  <data name="Start" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="PlayerComputer" xml:space="preserve">
+    <value>Computer ({0})</value>
+  </data>
+  <data name="PlayerYou" xml:space="preserve">
+    <value>You</value>
+  </data>
+  <data name="ComputerThinking" xml:space="preserve">
+    <value>The computer is thinking…</value>
+  </data>
+  <data name="GameFailed" xml:space="preserve">
+    <value>The game could not continue: {0}</value>
   </data>
 </root>

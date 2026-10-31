@@ -6,8 +6,9 @@
 
 Chess is a HackerOS window app: a chessboard drawn in SVG in the colours of
 the OS theme, the rules of the game from
-[chess.js](https://github.com/jhlywa/chess.js), and (work item 2) a game
-against the computer with stockfish.js. The goal and the decisions are in the
+[chess.js](https://github.com/jhlywa/chess.js), two players on the same
+screen or a game against the computer (Stockfish 19 from stockfish.js, in a Web
+Worker). The goal and the decisions are in the
 [plan](plan.md).
 
 ## Solution
@@ -45,13 +46,19 @@ waits for the OS to serve the `wwwroot/` files of installed apps
 | Folder or file | Role |
 | --- | --- |
 | `ChessApp.cs` | Manifest (`[AppManifest]`): id `ca.kazo.chess`, publisher `pub.kazo`, category `games`, desktop and mobile, 860×640 window (minimum 360×420). |
-| `ChessWindow.razor` (+ `.cs`, `.css`) | The window: toolbar ("New game"), board, status panel. It holds the game (`IChessRules`) and hands each `GameSnapshot` to the board. |
+| `ChessWindow.razor` (+ `.cs`, `.css`) | The window: toolbar ("New game"), board, status panel (turn, players, "The computer is thinking…"). It shows the `GameSession` and forwards what the player does. |
+| `Components/NewGameDialog.razor` (+ `.cs`, `.css`) | The "New game" dialog, inside the window: two players or against the computer, level, colour. It replaces a confirmation box: it says when the current game will be abandoned. |
+| `Game/GameSetup.cs` | How the game is set up: mode, level, the player's colour; side shown at the bottom; who may move. |
+| `Game/GameSession.cs` | One game: the rules, the computer when it plays, the turn. Plays the computer's reply after each of the player's moves. |
+| `Engine/` | `EngineLevel` (5 levels), `IChessEngine`, `StockfishEngine` (stockfish.js through JS interop, `bestmove` reading). |
 | `Components/ChessBoard.razor` (+ `.cs`, `.css`, `.js`) | The SVG board. It knows no rule: it draws the snapshot and turns mouse, touch and keyboard into `MoveRequest`s. |
 | `Components/SvgText.cs` | An SVG `<text>` element (Razor reserves the `<text>` tag). |
 | `Interaction/BoardInteraction.cs` | The player's hand over the board, immutable: selected piece, keyboard cursor, pending promotion. |
 | `Model/` | `Square`, `Piece`, `BoardPosition` (FEN reading), `MoveRequest` (UCI notation), `GameSnapshot`, `GameStatus`. |
 | `Rules/` | `IChessRules`, `ChessJsRules` (chess.js through JS interop) and `GameSnapshotJson` (snapshot reader). |
 | `wwwroot/js/chess-rules.js` | Adapts chess.js: one game per `createGame`, and after each move a full JSON snapshot. |
+| `wwwroot/js/chess-engine.js` | Starts Stockfish in a Web Worker and speaks UCI to it. |
+| `wwwroot/engine/` | Stockfish 19 "lite, single-threaded" from stockfish.js 19.0.1 (GPL-3.0): `.js` (28 KB) and `.wasm` (1.8 MB). |
 | `wwwroot/lib/chess.js/` | chess.js 1.4.0 (BSD-2-Clause), ESM build of the npm package. |
 | `wwwroot/pieces/celtic/` | The "celtic" pieces by Maurizio Monge (MIT). |
 | `Resources/` | English and French texts (`Strings`, `AppManifest.fr`). |
@@ -78,6 +85,32 @@ never asks chess.js twice for one render:
 (safe for the host published trimmed). A mate wins over a draw rule reported
 at the same time. An illegal move returns `null` and the position does not
 change.
+
+### Playing against the computer
+
+"New game" opens a dialog: two players on this screen, or against the computer
+with a level and a colour (White, Black, random). Against the computer, the
+board shows the player's side at the bottom and locks while the computer plays.
+
+| Level | UCI `Skill Level` | Thinking time (`go movetime`) |
+| --- | --- | --- |
+| Beginner | 0 | 300 ms |
+| Easy | 5 | 400 ms |
+| Medium | 10 | 600 ms |
+| Hard | 15 | 900 ms |
+| Expert | 20 | 1,500 ms |
+
+The engine is Stockfish 19 "lite, single-threaded" (stockfish.js): it runs in
+a Web Worker, with no cross-origin isolation, and is only downloaded for the
+first game against the computer (1.8 MB). `chess-engine.js` only speaks UCI
+(`uci`, `isready`, `ucinewgame`, `setoption name Skill Level`, `position fen`,
+`go movetime`, `stop`) and queues the searches.
+
+`GameSession` sends every change of the game through one gate: a move and a new
+game never interleave. A new game while the computer thinks cancels its search
+(Stockfish stops at once); its late reply carries an older game number and is
+not played. An engine that failed to start is dropped, and the next game starts
+a fresh one.
 
 ### Entering moves
 
@@ -133,9 +166,9 @@ Applications menu ("All applications" on mobile).
 
 | Suite | What it covers |
 | --- | --- |
-| `tests/Kazo.Chess.Tests` | `Square`, `BoardPosition`, `MoveRequest`, `GameStatus`, snapshot reading (on real chess.js snapshots in `Fixtures/`, written by `tests/js/write-fixtures.mjs`), `ChessJsRules` (on a fake JS runtime: a failed new game keeps the current one) and the whole board interaction. 91 tests, 98% of the lines of `Model/`, `Interaction/` and `Rules/`. |
+| `tests/Kazo.Chess.Tests` | `Square`, `BoardPosition`, `MoveRequest`, `GameStatus`, snapshot reading (on real chess.js snapshots in `Fixtures/`, written by `tests/js/write-fixtures.mjs`), `ChessJsRules` (on a fake JS runtime: a failed new game keeps the current one) the whole board interaction, `GameSetup`, `GameSession` (with a fake engine: the computer's reply, a refused move, a new game while it thinks, an engine that fails to start) and `StockfishEngine` (fake worker: one start, UCI options, `stop` on cancellation). 126 tests. |
 | `tests/js` | The `chess-rules.js` module with chess.js: legal and illegal moves, mate, stalemate, promotion, insufficient material, fifty-move rule. |
-| `tests/e2e` | The app in the host, in Chromium: moves by click, by drag and by keyboard; fool's mate (board locked); promotion (cancelled with the button, then chosen with the keyboard, the focus on the picker); phone screen (Pixel 7) and touch. `CHESS_BASE_URL` reuses a host already running. |
+| `tests/e2e` | The app in the host, in Chromium: moves by click, by drag and by keyboard; fool's mate (board locked); promotion (cancelled with the button, then chosen with the keyboard, the focus on the picker); phone screen (Pixel 7) and touch; against Stockfish as Black (it opens, the player answers, it plays again). `CHESS_BASE_URL` reuses a host already running. |
 
 The CI (`.github/workflows/ci.yml`) runs all of it on every push and PR.
 
@@ -169,5 +202,13 @@ Work item 1 (`chess/1-board-and-rules`):
 - [x] C#, node and end-to-end tests; mobile checked (Pixel 7).
 - [x] GitHub Actions CI.
 
-Next in the plan: work item 2 (stockfish.js), then history, undo, flip the
-board, clock, `.pgn` files (see the [plan](plan.md)).
+Work item 2 (`chess/2-engine`):
+
+- [x] Stockfish 19 "lite, single-threaded" in a Web Worker, loaded on demand.
+- [x] 5 levels (`Skill Level` 0, 5, 10, 15, 20), colour choice (random included).
+- [x] "New game" dialog inside the window, board turned to the player.
+- [x] `GameSession`: the computer's replies, cancellation on a new game.
+- [x] C# tests (fake engine and fake worker) and end to end against Stockfish.
+
+Next in the plan: history, undo, flip the board, clock, `.pgn` files (see the
+[plan](plan.md)).

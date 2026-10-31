@@ -4,8 +4,8 @@
 
 Chess app for [HackerOS](https://github.com/Kazo-ca/HackerOs), first app of the Hack Store catalog:
 an SVG board in the colours of the OS theme, rules by [chess.js](https://github.com/jhlywa/chess.js),
-two players on the same screen, mouse, touch and keyboard. A game against the computer
-([stockfish.js](https://github.com/nmrugg/stockfish.js)) comes next.
+two players on the same screen or against the computer
+([stockfish.js](https://github.com/nmrugg/stockfish.js), 5 levels), mouse, touch and keyboard.
 
 ```bash
 dotnet run --project src/Kazo.Chess.Os   # a HackerOS with Chess in the Applications menu

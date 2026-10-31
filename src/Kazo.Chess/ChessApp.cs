@@ -28,7 +28,7 @@ public sealed class ChessApp : AppDefinition
     public override string PublisherId => "pub.kazo";
 
     /// <inheritdoc />
-    public override string Description => "Chess for two players on the same screen, rules by chess.js";
+    public override string Description => "Chess for two players on the same screen or against Stockfish";
 
     /// <inheritdoc />
     public override string Category => "games";

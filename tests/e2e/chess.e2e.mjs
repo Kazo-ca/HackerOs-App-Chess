@@ -133,3 +133,29 @@ test('the board fits a phone screen and plays by touch', { timeout: 300_000 }, a
     assert.equal(await status(page).innerText(), 'Black to move');
     await context.close();
 });
+
+test('against the computer as Black: Stockfish opens and answers', { timeout: 300_000 }, async () => {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    await openChess(page, host.baseUrl);
+    await page.getByRole('button', { name: 'New game' }).click();
+    const dialog = page.getByRole('dialog', { name: 'New game' });
+    await dialog.getByRole('radio', { name: 'Against the computer' }).check();
+    await dialog.getByRole('radio', { name: 'Beginner' }).check();
+    await dialog.getByRole('radio', { name: 'Black', exact: true }).check();
+    await dialog.getByRole('button', { name: 'Start' }).click();
+
+    // The computer plays White's first move and the board faces the player's side.
+    await page.getByText('Black to move').waitFor({ timeout: 60_000 });
+    assert.equal(await page.locator('.board-svg').getAttribute('data-orientation'), 'black');
+    assert.match(await page.locator('.players').innerText(), /Computer \(Beginner\)/);
+
+    // The knight to f6 is legal whatever White opened with; the computer then answers.
+    const from = await squareCenter(page, 'g8', 'black');
+    const to = await squareCenter(page, 'f6', 'black');
+    await page.mouse.click(from.x, from.y);
+    await page.mouse.click(to.x, to.y);
+    await pieceOn(page, 'f6').waitFor();
+    await page.getByText('Black to move').waitFor({ timeout: 60_000 });
+    assert.match(await page.locator(".move-count").innerText(), /Move 2/);
+    await page.close();
+});

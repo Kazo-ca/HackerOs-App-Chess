@@ -1,0 +1,64 @@
+@using Kazo.Chess.Engine
+@using Kazo.Chess.Game
+
+<div class="dialog-backdrop" @onkeydown="OnKeyDownAsync">
+    <form class="new-game-dialog" role="dialog" aria-modal="true" aria-labelledby="@($"{_id}-title")"
+          @onsubmit="StartAsync" @onsubmit:preventDefault>
+        <h2 id="@($"{_id}-title")" class="dialog-title">@L["NewGame"]</h2>
+
+        <fieldset>
+            <legend>@L["ModeLegend"]</legend>
+            <label class="choice">
+                <input type="radio" name="@($"{_id}-mode")" checked="@(_mode == GameMode.TwoPlayers)"
+                       @ref="_firstInput" @onchange="() => _mode = GameMode.TwoPlayers" />
+                <span>@L["ModeTwoPlayers"]</span>
+            </label>
+            <label class="choice">
+                <input type="radio" name="@($"{_id}-mode")" checked="@(_mode == GameMode.AgainstComputer)"
+                       @onchange="() => _mode = GameMode.AgainstComputer" />
+                <span>@L["ModeComputer"]</span>
+            </label>
+        </fieldset>
+
+        @if (_mode == GameMode.AgainstComputer)
+        {
+            <fieldset>
+                <legend>@L["LevelLegend"]</legend>
+                <div class="level-row">
+                    @foreach (EngineLevel level in EngineLevels.All)
+                    {
+                        <label class="pill @(level == _level ? "active" : string.Empty)">
+                            <input type="radio" name="@($"{_id}-level")" checked="@(level == _level)"
+                                   @onchange="() => _level = level" />
+                            <span>@L[$"Level{level}"]</span>
+                        </label>
+                    }
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>@L["ColorLegend"]</legend>
+                <div class="level-row">
+                    @foreach (ColorChoice color in Enum.GetValues<ColorChoice>())
+                    {
+                        <label class="pill @(color == _color ? "active" : string.Empty)">
+                            <input type="radio" name="@($"{_id}-color")" checked="@(color == _color)"
+                                   @onchange="() => _color = color" />
+                            <span>@L[$"Color{color}"]</span>
+                        </label>
+                    }
+                </div>
+            </fieldset>
+        }
+
+        @if (AbandonsGame)
+        {
+            <p class="abandon-warning">@L["AbandonWarning"]</p>
+        }
+
+        <div class="dialog-actions">
+            <button type="button" class="dialog-button" @onclick="OnCancel">@L["Cancel"]</button>
+            <button type="submit" class="dialog-button primary">@L["Start"]</button>
+        </div>
+    </form>
+</div>
