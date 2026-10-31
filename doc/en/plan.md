@@ -3,8 +3,9 @@
 # Plan: the Chess app for HackerOS
 
 Plan **approved on 2026-10-29** by Benoit ("Plan the Hack Store and the Chess
-app" thread). No code is written yet: this document sets the target and the
-order of the work.
+app" thread). This document sets the target and the order of the work; the
+progress is at the end of the page and the code is described in
+[`architecture.md`](architecture.md).
 
 ## Goal
 
@@ -50,3 +51,19 @@ repository: `doc/en/wasm/dev/plans/hackeros-store.md` and ADRs 0188 to 0190.
 
 - This repository: GPL-3.0.
 - stockfish.js: GPL-3.0. chess.js: BSD-2-Clause. Pieces: CC0 or MIT.
+
+## Progress
+
+On 2026-10-30, Benoit chose to start before the HackerOS prerequisites: the
+solution starts from the NuGet 2.1.0 packages (`hackeros-window` and
+`hackeros-host`) and will move to the `hackeros-solution` template once it
+exists. The work goes through the `chess/base` series (one branch and one PR
+per work item).
+
+| Work item | Branch | State |
+| --- | --- | --- |
+| 1. SVG board, input (mouse, touch, keyboard), rules by chess.js, two players | `chess/1-board-and-rules` | Done ("celtic" pieces, MIT) |
+| 2. Against the computer: stockfish.js lite, 5 levels, colour choice | `chess/2-engine` | To do |
+| 3. History, undo, flip the board, clock | | To do |
+| 4. `.pgn` files, file association | | To do |
+| 5. Move to the `hackeros-solution` template, `store/` folder, `v1.0.0` tag | | Waits for Kazo-ca/HackerOs#246 to #249 |

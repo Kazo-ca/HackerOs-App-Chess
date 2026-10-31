@@ -1,0 +1,12 @@
+{
+  "fen": "7k/5Q2/6K1/8/8/8/8/8 b - - 0 1",
+  "turn": "b",
+  "inCheck": false,
+  "checkmate": false,
+  "stalemate": true,
+  "insufficientMaterial": false,
+  "threefoldRepetition": false,
+  "fiftyMoves": false,
+  "moves": [],
+  "history": []
+}

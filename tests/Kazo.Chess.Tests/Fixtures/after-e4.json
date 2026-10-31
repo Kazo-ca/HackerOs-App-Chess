@@ -1,0 +1,140 @@
+{
+  "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+  "turn": "b",
+  "inCheck": false,
+  "checkmate": false,
+  "stalemate": false,
+  "insufficientMaterial": false,
+  "threefoldRepetition": false,
+  "fiftyMoves": false,
+  "moves": [
+    {
+      "from": "b8",
+      "to": "c6",
+      "san": "Nc6",
+      "promotion": null
+    },
+    {
+      "from": "b8",
+      "to": "a6",
+      "san": "Na6",
+      "promotion": null
+    },
+    {
+      "from": "g8",
+      "to": "h6",
+      "san": "Nh6",
+      "promotion": null
+    },
+    {
+      "from": "g8",
+      "to": "f6",
+      "san": "Nf6",
+      "promotion": null
+    },
+    {
+      "from": "a7",
+      "to": "a6",
+      "san": "a6",
+      "promotion": null
+    },
+    {
+      "from": "a7",
+      "to": "a5",
+      "san": "a5",
+      "promotion": null
+    },
+    {
+      "from": "b7",
+      "to": "b6",
+      "san": "b6",
+      "promotion": null
+    },
+    {
+      "from": "b7",
+      "to": "b5",
+      "san": "b5",
+      "promotion": null
+    },
+    {
+      "from": "c7",
+      "to": "c6",
+      "san": "c6",
+      "promotion": null
+    },
+    {
+      "from": "c7",
+      "to": "c5",
+      "san": "c5",
+      "promotion": null
+    },
+    {
+      "from": "d7",
+      "to": "d6",
+      "san": "d6",
+      "promotion": null
+    },
+    {
+      "from": "d7",
+      "to": "d5",
+      "san": "d5",
+      "promotion": null
+    },
+    {
+      "from": "e7",
+      "to": "e6",
+      "san": "e6",
+      "promotion": null
+    },
+    {
+      "from": "e7",
+      "to": "e5",
+      "san": "e5",
+      "promotion": null
+    },
+    {
+      "from": "f7",
+      "to": "f6",
+      "san": "f6",
+      "promotion": null
+    },
+    {
+      "from": "f7",
+      "to": "f5",
+      "san": "f5",
+      "promotion": null
+    },
+    {
+      "from": "g7",
+      "to": "g6",
+      "san": "g6",
+      "promotion": null
+    },
+    {
+      "from": "g7",
+      "to": "g5",
+      "san": "g5",
+      "promotion": null
+    },
+    {
+      "from": "h7",
+      "to": "h6",
+      "san": "h6",
+      "promotion": null
+    },
+    {
+      "from": "h7",
+      "to": "h5",
+      "san": "h5",
+      "promotion": null
+    }
+  ],
+  "history": [
+    {
+      "from": "e2",
+      "to": "e4",
+      "san": "e4",
+      "color": "w"
+    }
+  ]
+}

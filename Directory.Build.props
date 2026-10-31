@@ -1,0 +1,10 @@
+<Project>
+  <!--
+    One version for every HackerOS package (HackerOS ADR 0098 §1), pinned once for the whole
+    repository. The packages come from nuget.org. When the hackeros-solution template lands
+    (Kazo-ca/HackerOs#246), this number comes from the external/HackerOs submodule instead.
+  -->
+  <PropertyGroup>
+    <HackerOsVersion>2.1.0</HackerOsVersion>
+  </PropertyGroup>
+</Project>

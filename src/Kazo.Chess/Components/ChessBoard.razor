@@ -1,0 +1,82 @@
+@using Kazo.Chess.Model
+
+<div class="chess-board" tabindex="0" role="application"
+     aria-roledescription="@L["BoardRole"]" aria-label="@L["BoardLabel"]"
+     aria-describedby="@_liveId" @ref="_host" @onkeydown="OnKeyDownAsync">
+    <svg class="board-svg" viewBox="0 0 8 8" data-orientation="@(Orientation == PieceColor.White ? "white" : "black")"
+         @ref="_svg" aria-hidden="true">
+        @foreach (Square square in Square.All)
+        {
+            (int x, int y) = ToView(square);
+            <rect class="@SquareClass(square)" x="@x" y="@y" width="1" height="1" />
+        }
+
+        @foreach ((Square square, Piece piece) in Snapshot.Board.Pieces)
+        {
+            (int x, int y) = ToView(square);
+            <image @key="square" class="piece" href="@PieceImage(piece)" x="@x" y="@y" width="1" height="1"
+                   data-square="@square.Name" data-movable="@(IsMovable(piece) ? "true" : "false")" />
+        }
+
+        @* Coordinates after the pieces: a piece of the edge rank would hide them. *@
+        @for (int column = 0; column < Square.Size; column++)
+        {
+            Square square = FromView(column, Square.Size - 1);
+            <SvgText Class="@($"coordinate file {LabelTone(square)}")" X="@(column + 0.94)" Y="7.94" Text="@(((char)('a' + square.File)).ToString())" />
+        }
+
+        @for (int row = 0; row < Square.Size; row++)
+        {
+            Square square = FromView(0, row);
+            <SvgText Class="@($"coordinate rank {LabelTone(square)}")" X="0.05" Y="@(row + 0.2)" Text="@((square.Rank + 1).ToString(System.Globalization.CultureInfo.InvariantCulture))" />
+        }
+
+        @foreach (Square target in _targets)
+        {
+            (int x, int y) = ToView(target);
+            if (Snapshot.Board[target] is null)
+            {
+                <circle class="target" cx="@(x + 0.5)" cy="@(y + 0.5)" r="0.16" />
+            }
+            else
+            {
+                <circle class="target capture" cx="@(x + 0.5)" cy="@(y + 0.5)" r="0.45" />
+            }
+        }
+
+        @{
+            (int cursorX, int cursorY) = ToView(_interaction.Cursor);
+        }
+        <rect class="cursor" x="@(cursorX + 0.04)" y="@(cursorY + 0.04)" width="0.92" height="0.92" />
+    </svg>
+
+    @if (_interaction.Promotion is not null)
+    {
+        <div class="promotion" role="dialog" aria-modal="true" aria-label="@L["PromotionTitle"]">
+            <span class="promotion-title">@L["PromotionTitle"]</span>
+            <div class="promotion-choices">
+                @foreach (PieceType type in PromotionChoices)
+                {
+                    Piece piece = new(Snapshot.Turn, type);
+                    if (type == PromotionChoices[0])
+                    {
+                        <button type="button" class="promotion-choice" title="@PieceName(piece)" aria-label="@PieceName(piece)"
+                                @ref="_firstPromotionChoice" @onclick="() => ChoosePromotionAsync(type)">
+                            <img src="@PieceImage(piece)" alt="" />
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="button" class="promotion-choice" title="@PieceName(piece)" aria-label="@PieceName(piece)"
+                                @onclick="() => ChoosePromotionAsync(type)">
+                            <img src="@PieceImage(piece)" alt="" />
+                        </button>
+                    }
+                }
+            </div>
+            <button type="button" class="promotion-cancel" @onclick="CancelPromotion">@L["Cancel"]</button>
+        </div>
+    }
+
+    <span id="@_liveId" class="visually-hidden" aria-live="polite">@CursorDescription</span>
+</div>

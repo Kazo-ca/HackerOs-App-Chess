@@ -1,0 +1,55 @@
+{
+  "fen": "8/P6k/8/8/8/8/8/K7 w - - 0 1",
+  "turn": "w",
+  "inCheck": false,
+  "checkmate": false,
+  "stalemate": false,
+  "insufficientMaterial": false,
+  "threefoldRepetition": false,
+  "fiftyMoves": false,
+  "moves": [
+    {
+      "from": "a7",
+      "to": "a8",
+      "san": "a8=N",
+      "promotion": "n"
+    },
+    {
+      "from": "a7",
+      "to": "a8",
+      "san": "a8=B",
+      "promotion": "b"
+    },
+    {
+      "from": "a7",
+      "to": "a8",
+      "san": "a8=R",
+      "promotion": "r"
+    },
+    {
+      "from": "a7",
+      "to": "a8",
+      "san": "a8=Q",
+      "promotion": "q"
+    },
+    {
+      "from": "a1",
+      "to": "a2",
+      "san": "Ka2",
+      "promotion": null
+    },
+    {
+      "from": "a1",
+      "to": "b2",
+      "san": "Kb2",
+      "promotion": null
+    },
+    {
+      "from": "a1",
+      "to": "b1",
+      "san": "Kb1",
+      "promotion": null
+    }
+  ],
+  "history": []
+}

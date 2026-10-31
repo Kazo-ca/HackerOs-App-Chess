@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AppTitle" xml:space="preserve">
+    <value>Échecs</value>
+  </data>
+  <data name="BoardLabel" xml:space="preserve">
+    <value>Échiquier. Les flèches déplacent le curseur, Entrée ou Espace prend une pièce et la joue, Échap annule.</value>
+  </data>
+  <data name="BoardRole" xml:space="preserve">
+    <value>échiquier</value>
+  </data>
+  <data name="ConfirmNewGame" xml:space="preserve">
+    <value>Abandonner la partie en cours et en commencer une nouvelle ?</value>
+  </data>
+  <data name="CursorDescription" xml:space="preserve">
+    <value>{0} : {1}</value>
+  </data>
+  <data name="EmptySquare" xml:space="preserve">
+    <value>vide</value>
+  </data>
+  <data name="LoadingRules" xml:space="preserve">
+    <value>Chargement des règles…</value>
+  </data>
+  <data name="MoveCount" xml:space="preserve">
+    <value>Coup {0}</value>
+  </data>
+  <data name="NewGame" xml:space="preserve">
+    <value>Nouvelle partie</value>
+  </data>
+  <data name="PieceBlackBishop" xml:space="preserve">
+    <value>Fou noir</value>
+  </data>
+  <data name="PieceBlackKing" xml:space="preserve">
+    <value>Roi noir</value>
+  </data>
+  <data name="PieceBlackKnight" xml:space="preserve">
+    <value>Cavalier noir</value>
+  </data>
+  <data name="PieceBlackPawn" xml:space="preserve">
+    <value>Pion noir</value>
+  </data>
+  <data name="PieceBlackQueen" xml:space="preserve">
+    <value>Dame noire</value>
+  </data>
+  <data name="PieceBlackRook" xml:space="preserve">
+    <value>Tour noire</value>
+  </data>
+  <data name="PieceWhiteBishop" xml:space="preserve">
+    <value>Fou blanc</value>
+  </data>
+  <data name="PieceWhiteKing" xml:space="preserve">
+    <value>Roi blanc</value>
+  </data>
+  <data name="PieceWhiteKnight" xml:space="preserve">
+    <value>Cavalier blanc</value>
+  </data>
+  <data name="PieceWhitePawn" xml:space="preserve">
+    <value>Pion blanc</value>
+  </data>
+  <data name="PieceWhiteQueen" xml:space="preserve">
+    <value>Dame blanche</value>
+  </data>
+  <data name="PieceWhiteRook" xml:space="preserve">
+    <value>Tour blanche</value>
+  </data>
+  <data name="PlayerHuman" xml:space="preserve">
+    <value>Joueur</value>
+  </data>
+  <data name="PromotionTitle" xml:space="preserve">
+    <value>Promouvoir en</value>
+  </data>
+  <data name="RulesFailed" xml:space="preserve">
+    <value>Les règles du jeu n'ont pas pu être chargées : {0}</value>
+  </data>
+  <data name="SideBlack" xml:space="preserve">
+    <value>Noirs</value>
+  </data>
+  <data name="SideWhite" xml:space="preserve">
+    <value>Blancs</value>
+  </data>
+  <data name="StatusCheck" xml:space="preserve">
+    <value>Aux {0} de jouer : échec !</value>
+  </data>
+  <data name="StatusCheckmate" xml:space="preserve">
+    <value>Échec et mat : les {0} gagnent</value>
+  </data>
+  <data name="StatusFiftyMoveRule" xml:space="preserve">
+    <value>Nulle : règle des cinquante coups</value>
+  </data>
+  <data name="StatusInsufficientMaterial" xml:space="preserve">
+    <value>Nulle : matériel insuffisant</value>
+  </data>
+  <data name="StatusStalemate" xml:space="preserve">
+    <value>Pat : partie nulle</value>
+  </data>
+  <data name="StatusThreefoldRepetition" xml:space="preserve">
+    <value>Nulle : triple répétition</value>
+  </data>
+  <data name="StatusToMove" xml:space="preserve">
+    <value>Aux {0} de jouer</value>
+  </data>
+  <data name="SelectionDescription" xml:space="preserve">
+    <value>{0} choisie, {1} coups possibles</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="PointerUnavailable" xml:space="preserve">
+    <value>La saisie à la souris et au toucher n'a pas pu se charger ({0}) ; le clavier joue toujours.</value>
+  </data>
+</root>

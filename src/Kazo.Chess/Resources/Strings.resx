@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AppTitle" xml:space="preserve">
+    <value>Chess</value>
+  </data>
+  <data name="BoardLabel" xml:space="preserve">
+    <value>Chessboard. Arrow keys move the cursor, Enter or Space picks a piece and plays it, Escape cancels.</value>
+  </data>
+  <data name="BoardRole" xml:space="preserve">
+    <value>chessboard</value>
+  </data>
+  <data name="ConfirmNewGame" xml:space="preserve">
+    <value>Abandon the current game and start a new one?</value>
+  </data>
+  <data name="CursorDescription" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="EmptySquare" xml:space="preserve">
+    <value>empty</value>
+  </data>
+  <data name="LoadingRules" xml:space="preserve">
+    <value>Loading the rules…</value>
+  </data>
+  <data name="MoveCount" xml:space="preserve">
+    <value>Move {0}</value>
+  </data>
+  <data name="NewGame" xml:space="preserve">
+    <value>New game</value>
+  </data>
+  <data name="PieceBlackBishop" xml:space="preserve">
+    <value>Black bishop</value>
+  </data>
+  <data name="PieceBlackKing" xml:space="preserve">
+    <value>Black king</value>
+  </data>
+  <data name="PieceBlackKnight" xml:space="preserve">
+    <value>Black knight</value>
+  </data>
+  <data name="PieceBlackPawn" xml:space="preserve">
+    <value>Black pawn</value>
+  </data>
+  <data name="PieceBlackQueen" xml:space="preserve">
+    <value>Black queen</value>
+  </data>
+  <data name="PieceBlackRook" xml:space="preserve">
+    <value>Black rook</value>
+  </data>
+  <data name="PieceWhiteBishop" xml:space="preserve">
+    <value>White bishop</value>
+  </data>
+  <data name="PieceWhiteKing" xml:space="preserve">
+    <value>White king</value>
+  </data>
+  <data name="PieceWhiteKnight" xml:space="preserve">
+    <value>White knight</value>
+  </data>
+  <data name="PieceWhitePawn" xml:space="preserve">
+    <value>White pawn</value>
+  </data>
+  <data name="PieceWhiteQueen" xml:space="preserve">
+    <value>White queen</value>
+  </data>
+  <data name="PieceWhiteRook" xml:space="preserve">
+    <value>White rook</value>
+  </data>
+  <data name="PlayerHuman" xml:space="preserve">
+    <value>Player</value>
+  </data>
+  <data name="PromotionTitle" xml:space="preserve">
+    <value>Promote to</value>
+  </data>
+  <data name="RulesFailed" xml:space="preserve">
+    <value>The rules of the game could not be loaded: {0}</value>
+  </data>
+  <data name="SideBlack" xml:space="preserve">
+    <value>Black</value>
+  </data>
+  <data name="SideWhite" xml:space="preserve">
+    <value>White</value>
+  </data>
+  <data name="StatusCheck" xml:space="preserve">
+    <value>{0} to move: check!</value>
+  </data>
+  <data name="StatusCheckmate" xml:space="preserve">
+    <value>Checkmate: {0} wins</value>
+  </data>
+  <data name="StatusFiftyMoveRule" xml:space="preserve">
+    <value>Draw: fifty-move rule</value>
+  </data>
+  <data name="StatusInsufficientMaterial" xml:space="preserve">
+    <value>Draw: insufficient material</value>
+  </data>
+  <data name="StatusStalemate" xml:space="preserve">
+    <value>Stalemate: draw</value>
+  </data>
+  <data name="StatusThreefoldRepetition" xml:space="preserve">
+    <value>Draw: threefold repetition</value>
+  </data>
+  <data name="StatusToMove" xml:space="preserve">
+    <value>{0} to move</value>
+  </data>
+  <data name="SelectionDescription" xml:space="preserve">
+    <value>{0} selected, {1} possible moves</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="PointerUnavailable" xml:space="preserve">
+    <value>The mouse and touch input could not load ({0}); the keyboard still plays.</value>
+  </data>
+</root>
