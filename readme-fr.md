@@ -9,8 +9,13 @@ Store : un plateau SVG aux couleurs du thème de l'OS, les règles par
 (`.pgn`), souris, toucher et clavier.
 
 ```bash
-dotnet run --project src/Kazo.Chess.Os   # un HackerOS avec Chess dans le menu Applications
+git clone --recurse-submodules https://github.com/Kazo-ca/HackerOs-App-Chess.git
+cd HackerOs-App-Chess
+dotnet run --project src/Kazo.Chess.Os -c Release   # un HackerOS avec Chess dans le menu Applications
 ```
+
+Le dépôt suit le modèle `hackeros-solution` : `external/HackerOs` est HackerOS en sous-module sur
+son tag de release (2.2.0), qui fixe la version de tous les paquets HackerOS.
 
 - Plan : [Français](doc/fr/plan.md) · [English](doc/en/plan.md)
 - Architecture, build et tests : [Français](doc/fr/architecture.md) · [English](doc/en/architecture.md)

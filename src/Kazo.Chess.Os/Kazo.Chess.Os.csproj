@@ -16,7 +16,6 @@
       IsSystemApp="true" makes an app a system app (not uninstallable, dangerous capabilities granted).
     -->
     <HackerOsAppHost>true</HackerOsAppHost>
-    <HackerOsVersion>2.1.0</HackerOsVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.13" />
@@ -42,6 +41,7 @@
     <PackageReference Include="HackerOs.Apps.ErrorLogViewer" Version="$(HackerOsVersion)" IsSystemApp="true" />
     <PackageReference Include="HackerOs.Apps.WebServer" Version="$(HackerOsVersion)" IsSystemApp="true" />
     <PackageReference Include="HackerOs.Apps.ThemeEditor" Version="$(HackerOsVersion)" IsSystemApp="true" />
+    <PackageReference Include="HackerOs.Apps.Store" Version="$(HackerOsVersion)" IsSystemApp="true" />
     <PackageReference Include="HackerOs.Apps.Browser" Version="$(HackerOsVersion)" />
     <PackageReference Include="HackerOs.Apps.Calculator" Version="$(HackerOsVersion)" />
     <PackageReference Include="HackerOs.Apps.HackPaint" Version="$(HackerOsVersion)" />

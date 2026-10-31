@@ -1,7 +1,8 @@
 name: CI
 
-# Builds the solution and runs every test suite: C# unit tests, the rules module under node, and
-# the end-to-end runs of the app inside the HackerOS host (Playwright, Chromium).
+# Builds the Release profile (HackerOS packages from nuget.org, at the version of the
+# external/HackerOs submodule) and runs every test suite: C# unit tests, the JavaScript modules under
+# node, and the end-to-end runs of the app inside the HackerOS host (Playwright, Chromium).
 # Pushes to the integration branches, and every PR (work items are pushed and tested through
 # their PR, so a work-item push does not run twice).
 on:
@@ -21,13 +22,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
-      - name: Checkout
+      - name: Checkout (with the HackerOS submodule)
         uses: actions/checkout@v6
+        with:
+          submodules: true
 
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: "10.0.x"
+          global-json-file: global.json
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -35,16 +38,22 @@ jobs:
           node-version: "22"
           cache: npm
 
-      - name: Build
-        run: dotnet build Kazo.Chess.slnx
+      # ADR 0176 §6 of HackerOS: never a modified submodule, always exactly on its release tag.
+      - name: Check the HackerOS submodule
+        run: bash .github/scripts/check-hackeros-submodule.sh
+
+      # The Release profile: HackerOS packages from nuget.org, at the submodule's version. This is
+      # what the Hack Store compiles.
+      - name: Build (Release, packages)
+        run: dotnet build Kazo.Chess.slnx -c Release
 
       - name: C# unit tests
-        run: dotnet test tests/Kazo.Chess.Tests --no-build
+        run: dotnet test Kazo.Chess.slnx -c Release --no-build
 
       - name: Install JavaScript test tools
         run: npm ci
 
-      - name: Rules module tests
+      - name: Rules and engine module tests
         run: npm test
 
       - name: Install Playwright Chromium
