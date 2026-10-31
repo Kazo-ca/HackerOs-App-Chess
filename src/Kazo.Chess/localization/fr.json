@@ -1,4 +1,4 @@
 {
   "name": "Échecs",
-  "description": "Échecs à deux sur le même écran, règles par chess.js"
+  "description": "Échecs à deux sur le même écran ou contre Stockfish"
 }

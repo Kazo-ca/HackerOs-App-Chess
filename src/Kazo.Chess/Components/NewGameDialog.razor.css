@@ -1,0 +1,153 @@
+/* The new game dialog: a console-like card over the window, in the OS theme. */
+.dialog-backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+    background: color-mix(in srgb, var(--hos-bg-overlay, rgba(0, 0, 0, 0.6)) 80%, transparent);
+    backdrop-filter: blur(3px);
+}
+
+.focus-guard {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+}
+
+.new-game-dialog {
+    width: min(440px, 100%);
+    max-height: 100%;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px 20px;
+    background: var(--hos-bg-elevated, #1c2330);
+    color: var(--hos-text-primary, #e6edf3);
+    border: 1px solid var(--hos-border-strong, #3d4654);
+    border-top: 3px solid var(--hos-accent, #42d392);
+    border-radius: var(--hos-radius-lg, 10px);
+    box-shadow: var(--hos-shadow-lg, 0 16px 40px rgba(0, 0, 0, 0.55));
+    outline: none;
+}
+
+.dialog-title {
+    margin: 0;
+    font-family: var(--hos-font-mono, 'Consolas', monospace);
+    font-size: 1rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--hos-text-accent, var(--hos-accent, #42d392));
+}
+
+fieldset {
+    margin: 0;
+    padding: 0;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+legend {
+    margin-bottom: 6px;
+    color: var(--hos-text-muted, #8b949e);
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.choice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--hos-border-subtle, var(--hos-border, #30363d));
+    border-radius: var(--hos-radius-md, 6px);
+    cursor: pointer;
+}
+
+.choice:has(input:checked) {
+    border-color: var(--hos-accent, #42d392);
+    background: var(--hos-accent-subtle, rgba(66, 211, 146, 0.1));
+}
+
+.choice input {
+    accent-color: var(--hos-accent, #42d392);
+}
+
+.level-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.pill {
+    position: relative;
+    padding: 6px 12px;
+    border: 1px solid var(--hos-border, #30363d);
+    border-radius: var(--hos-radius-pill, 999px);
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: border-color var(--hos-transition-fast, 120ms), background var(--hos-transition-fast, 120ms);
+}
+
+/* The radio stays in the page for the keyboard and screen readers, drawn as the whole pill. */
+.pill input {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.pill.active {
+    border-color: var(--hos-accent, #42d392);
+    background: var(--hos-accent, #42d392);
+    color: var(--hos-text-inverse, #0d1117);
+    font-weight: 600;
+}
+
+.pill:has(input:focus-visible) {
+    outline: 2px solid var(--hos-focus-ring, var(--hos-accent, #42d392));
+    outline-offset: 2px;
+}
+
+.abandon-warning {
+    margin: 0;
+    color: var(--hos-warning, #e3b341);
+    font-size: 0.85rem;
+}
+
+.dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.dialog-button {
+    min-height: var(--hos-btn-min-height, 32px);
+    padding: var(--hos-btn-padding, 4px 14px);
+    background: var(--hos-btn-bg, #21262d);
+    color: var(--hos-btn-color, inherit);
+    border: 1px solid var(--hos-btn-border, var(--hos-border, #30363d));
+    border-radius: var(--hos-btn-radius, 4px);
+    font: inherit;
+    font-weight: var(--hos-btn-font-weight, 600);
+    cursor: pointer;
+}
+
+.dialog-button.primary {
+    background: var(--hos-btn-primary-bg, var(--hos-accent, #42d392));
+    color: var(--hos-btn-primary-color, #0d1117);
+    border-color: var(--hos-btn-primary-border, var(--hos-accent, #42d392));
+}
+
+.dialog-button:focus-visible {
+    outline: 2px solid var(--hos-focus-ring, var(--hos-accent, #42d392));
+    outline-offset: 2px;
+}

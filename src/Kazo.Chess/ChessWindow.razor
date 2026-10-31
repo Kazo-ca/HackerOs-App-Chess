@@ -1,4 +1,5 @@
 @using Kazo.Chess.Components
+@using Kazo.Chess.Game
 @using Kazo.Chess.Model
 @inherits WindowAppBase
 
@@ -7,7 +8,8 @@
         <span class="chess-brand" aria-hidden="true">♞</span>
         <span class="chess-title">@L["AppTitle"]</span>
         <span class="toolbar-spacer"></span>
-        <button type="button" class="toolbar-button" disabled="@(_snapshot is null || _busy)" @onclick="NewGameAsync">
+        <button type="button" class="toolbar-button" disabled="@(Snapshot is null || _dialogOpen)" @onclick="OpenNewGameDialog"
+                @ref="_newGameButton">
             @L["NewGame"]
         </button>
     </header>
@@ -15,9 +17,9 @@
     <main class="chess-main">
         <section class="board-area" aria-label="@L["BoardLabel"]">
             <div class="board-frame">
-                @if (_snapshot is not null)
+                @if (Snapshot is not null)
                 {
-                    <ChessBoard Snapshot="_snapshot" Orientation="_orientation" Mover="Mover" OnMove="PlayAsync"
+                    <ChessBoard Snapshot="Snapshot" Orientation="_session.Setup.Orientation" Mover="Mover" OnMove="PlayAsync"
                                 OnScriptError="OnBoardScriptError" />
                 }
                 else
@@ -28,28 +30,38 @@
         </section>
 
         <aside class="side-panel">
-            @if (_snapshot is not null)
+            @if (Snapshot is not null)
             {
-                GameStatus status = GameStatus.Of(_snapshot);
-                <div class="status-card @(_snapshot.IsOver ? "over" : string.Empty)" role="status" aria-live="polite">
+                GameStatus status = GameStatus.Of(Snapshot);
+                <div class="status-card @(Snapshot.IsOver ? "over" : string.Empty)" role="status" aria-live="polite">
                     @if (status.Side is { } side)
                     {
                         <span class="side-token @(side == PieceColor.White ? "white" : "black")" aria-hidden="true"></span>
                     }
                     <span class="status-text">@StatusText(status)</span>
                 </div>
+                @if (_session.IsThinking)
+                {
+                    <p class="thinking" role="status">@L["ComputerThinking"]</p>
+                }
                 <dl class="players">
                     <dt><span class="side-token white" aria-hidden="true"></span>@L["SideWhite"]</dt>
-                    <dd>@L["PlayerHuman"]</dd>
+                    <dd>@PlayerName(PieceColor.White)</dd>
                     <dt><span class="side-token black" aria-hidden="true"></span>@L["SideBlack"]</dt>
-                    <dd>@L["PlayerHuman"]</dd>
+                    <dd>@PlayerName(PieceColor.Black)</dd>
                 </dl>
                 @if (_error is not null)
                 {
                     <p class="error-note" role="alert">@_error</p>
                 }
-                <p class="move-count">@L["MoveCount", (_snapshot.History.Count / 2) + 1]</p>
+                <p class="move-count">@L["MoveCount", (Snapshot.History.Count / 2) + 1]</p>
             }
         </aside>
     </main>
+
+    @if (_dialogOpen)
+    {
+        <NewGameDialog Initial="_lastChoice" AbandonsGame="@(Snapshot is { IsOver: false, History.Count: > 0 })"
+                       OnStart="StartNewGameAsync" OnCancel="CloseNewGameDialog" />
+    }
 </div>

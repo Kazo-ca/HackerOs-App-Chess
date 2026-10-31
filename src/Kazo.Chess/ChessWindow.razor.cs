@@ -1,5 +1,7 @@
-using HackerOs.AppSdk.Blazor;
 using HackerOs.AppSdk.Globalization;
+using Kazo.Chess.Components;
+using Kazo.Chess.Engine;
+using Kazo.Chess.Game;
 using Kazo.Chess.Model;
 using Kazo.Chess.Rules;
 using Microsoft.AspNetCore.Components;
@@ -9,16 +11,17 @@ using Microsoft.JSInterop;
 namespace Kazo.Chess;
 
 /// <summary>
-/// The Chess window: one game at a time, two players on the same screen. The window owns the game
-/// (an <see cref="IChessRules"/> over chess.js) and hands each new <see cref="GameSnapshot"/> to the
-/// <see cref="Components.ChessBoard"/>, which raises the moves the player completes.
+/// The Chess window. It shows the <see cref="GameSession"/> (the rules, and Stockfish when the
+/// computer plays) and forwards what the player does: the moves completed on the
+/// <see cref="Components.ChessBoard"/> and the choices of the <see cref="NewGameDialog"/>.
 /// </summary>
 public sealed partial class ChessWindow : IAsyncDisposable
 {
-    private IChessRules? _rules;
-    private GameSnapshot? _snapshot;
-    private PieceColor _orientation = PieceColor.White;
-    private bool _busy;
+    private GameSession _session = default!;
+    private NewGameChoice _lastChoice = NewGameChoice.Default;
+    private bool _dialogOpen;
+    private bool _focusNewGameButton;
+    private ElementReference _newGameButton;
     private string? _error;
     private IStringLocalizer<Strings>? _localizer;
 
@@ -27,88 +30,70 @@ public sealed partial class ChessWindow : IAsyncDisposable
 
     private IStringLocalizer<Strings> L => _localizer ??= AppContext.GetLocalizer<Strings>();
 
-    // Two players share the screen: whoever's turn it is may move, unless a move is being played or
-    // the game is over.
-    private PieceColor? Mover => _snapshot is { IsOver: false } snapshot && !_busy ? snapshot.Turn : null;
+    private GameSnapshot? Snapshot => _session.Snapshot;
+
+    // While the dialog is open the board waits: no move is lost behind it.
+    private PieceColor? Mover => _dialogOpen ? null : _session.Mover;
 
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        if (_rules is not null)
-        {
-            await _rules.DisposeAsync();
-        }
+        _session.Changed -= OnSessionChanged;
+        await _session.DisposeAsync();
+    }
+
+    /// <inheritdoc />
+    protected override void OnAppInitialized()
+    {
+        _session = new GameSession(new ChessJsRules(JavaScript), () => new StockfishEngine(JavaScript));
+        _session.Changed += OnSessionChanged;
     }
 
     /// <inheritdoc />
     protected override async Task OnAppAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender)
+        if (firstRender)
         {
+            await RunGameAsync(() => _session.StartAsync(GameSetup.TwoPlayers, AppContext.CancellationToken));
+
+            // Nothing renders after OnAfterRender on its own: show the first game, or why it failed.
+            StateHasChanged();
             return;
         }
 
-        _rules = new ChessJsRules(JavaScript);
-        await RunRulesAsync(async () => _snapshot = await _rules.NewGameAsync(cancellationToken: AppContext.CancellationToken));
-        StateHasChanged();
+        if (_focusNewGameButton)
+        {
+            // Back from the dialog: the keyboard focus returns where it was.
+            _focusNewGameButton = false;
+            await _newGameButton.FocusAsync();
+        }
     }
 
-    private async Task NewGameAsync()
+    private void OpenNewGameDialog() => _dialogOpen = true;
+
+    private void CloseNewGameDialog()
     {
-        if (_rules is null || _snapshot is null || _busy)
-        {
-            return;
-        }
-
-        // Locked from the first click: the board and this button wait for the answer, so no move
-        // is lost behind the dialog and no second dialog opens.
-        _busy = true;
-        try
-        {
-            if (_snapshot.History.Count > 0 && !_snapshot.IsOver)
-            {
-                MessageBoxDialogResult answer = await MessageBox(L["NewGame"], L["ConfirmNewGame"], MessageBoxType.YesNo);
-                if (answer.Result != MessageBoxResult.Yes)
-                {
-                    return;
-                }
-            }
-
-            await RunRulesAsync(async () =>
-            {
-                _snapshot = await _rules.NewGameAsync(cancellationToken: AppContext.CancellationToken);
-                _orientation = PieceColor.White;
-            });
-        }
-        finally
-        {
-            _busy = false;
-        }
+        _dialogOpen = false;
+        _focusNewGameButton = true;
     }
 
-    private async Task PlayAsync(MoveRequest move)
+    private Task StartNewGameAsync(NewGameChoice choice)
     {
-        if (_rules is null || _busy)
-        {
-            return;
-        }
-
-        _busy = true;
-        try
-        {
-            // An illegal move (a stale board) changes nothing: the board redraws the same position.
-            await RunRulesAsync(async () =>
-                _snapshot = await _rules.TryMoveAsync(move, AppContext.CancellationToken) ?? _snapshot);
-        }
-        finally
-        {
-            _busy = false;
-        }
+        _lastChoice = choice;
+        CloseNewGameDialog();
+        GameSetup setup = choice.Mode == GameMode.AgainstComputer
+            ? GameSetup.AgainstComputer(choice.Level, choice.Color, Random.Shared)
+            : GameSetup.TwoPlayers;
+        return RunGameAsync(() => _session.StartAsync(setup, AppContext.CancellationToken));
     }
 
-    // Every call into the rules: a failure is shown in the window (the game stays as it was), and the
+    // The player's move, then the computer's reply when it plays; a refused move changes nothing.
+    private Task PlayAsync(MoveRequest move) =>
+        RunGameAsync(() => _session.PlayAsync(move, AppContext.CancellationToken));
+
+    // Every call into the game: a failure is shown in the window (the game stays as it was), and the
     // window closing mid-call (its token cancelled) is no error at all.
-    private async Task RunRulesAsync(Func<Task> call)
+    private async Task RunGameAsync(Func<Task> call)
     {
         try
         {
@@ -119,11 +104,18 @@ public sealed partial class ChessWindow : IAsyncDisposable
         {
             // The window is closing.
         }
+        catch (JSDisconnectedException)
+        {
+            // The page is going away: there is no one left to tell.
+        }
         catch (Exception exception) when (exception is JSException or FormatException or InvalidOperationException)
         {
-            _error = L["RulesFailed", exception.Message];
+            _error = L["GameFailed", exception.Message];
         }
     }
+
+    // The session changes from its own awaits (the computer's move): render on the window's dispatcher.
+    private void OnSessionChanged() => _ = InvokeAsync(StateHasChanged);
 
     private void OnBoardScriptError(string message) => _error = L["PointerUnavailable", message];
 
@@ -131,4 +123,17 @@ public sealed partial class ChessWindow : IAsyncDisposable
         status.Side is { } side ? L[status.Key, SideName(side)] : L[status.Key];
 
     private string SideName(PieceColor side) => side == PieceColor.White ? L["SideWhite"] : L["SideBlack"];
+
+    private string PlayerName(PieceColor side)
+    {
+        GameSetup setup = _session.Setup;
+        if (setup.Mode == GameMode.TwoPlayers)
+        {
+            return L["PlayerHuman"];
+        }
+
+        return side == setup.ComputerColor
+            ? L["PlayerComputer", L[$"Level{setup.Level}"]]
+            : L["PlayerYou"];
+    }
 }

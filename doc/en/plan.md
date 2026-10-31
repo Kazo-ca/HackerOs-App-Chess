@@ -63,7 +63,7 @@ per work item).
 | Work item | Branch | State |
 | --- | --- | --- |
 | 1. SVG board, input (mouse, touch, keyboard), rules by chess.js, two players | `chess/1-board-and-rules` | Done ("celtic" pieces, MIT) |
-| 2. Against the computer: stockfish.js lite, 5 levels, colour choice | `chess/2-engine` | To do |
+| 2. Against the computer: stockfish.js lite, 5 levels, colour choice | `chess/2-engine` | Done (Stockfish 19 lite, 1.8 MB) |
 | 3. History, undo, flip the board, clock | | To do |
 | 4. `.pgn` files, file association | | To do |
 | 5. Move to the `hackeros-solution` template, `store/` folder, `v1.0.0` tag | | Waits for Kazo-ca/HackerOs#246 to #249 |

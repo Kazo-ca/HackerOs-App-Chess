@@ -292,6 +292,7 @@ FakesAssemblies/
 # Node.js Tools for Visual Studio
 .ntvs_analysis.dat
 node_modules/
+/node_modules
 
 # Visual Studio 6 build log
 *.plg
@@ -483,3 +484,4 @@ $RECYCLE.BIN/
 
 # Node test runs
 node_modules/
+/node_modules

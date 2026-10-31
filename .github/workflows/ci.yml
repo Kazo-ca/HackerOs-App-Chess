@@ -2,9 +2,11 @@ name: CI
 
 # Builds the solution and runs every test suite: C# unit tests, the rules module under node, and
 # the end-to-end runs of the app inside the HackerOS host (Playwright, Chromium).
+# Pushes to the integration branches, and every PR (work items are pushed and tested through
+# their PR, so a work-item push does not run twice).
 on:
   push:
-    branches: [main, "chess/**"]
+    branches: [main, "chess/base"]
   pull_request:
 
 permissions:

@@ -6,8 +6,9 @@
 
 Chess est une app fenêtrée de HackerOS : un échiquier dessiné en SVG aux
 couleurs du thème de l'OS, les règles du jeu par
-[chess.js](https://github.com/jhlywa/chess.js), et (chantier 2) une partie
-contre l'ordinateur par stockfish.js. Le but et les décisions sont dans le
+[chess.js](https://github.com/jhlywa/chess.js), deux joueurs sur le même écran
+ou une partie contre l'ordinateur (Stockfish 19 par stockfish.js, dans un Web
+Worker). Le but et les décisions sont dans le
 [plan](plan.md).
 
 ## Solution
@@ -45,13 +46,19 @@ le Hack Store attend que l'OS serve les fichiers `wwwroot/` des apps installées
 | Dossier ou fichier | Rôle |
 | --- | --- |
 | `ChessApp.cs` | Manifeste (`[AppManifest]`) : id `ca.kazo.chess`, éditeur `pub.kazo`, catégorie `games`, bureau et mobile, fenêtre 860×640 (minimum 360×420). |
-| `ChessWindow.razor` (+ `.cs`, `.css`) | La fenêtre : barre d'outils (« Nouvelle partie »), plateau, panneau d'état. Elle tient la partie (`IChessRules`) et passe chaque `GameSnapshot` au plateau. |
+| `ChessWindow.razor` (+ `.cs`, `.css`) | La fenêtre : barre d'outils (« Nouvelle partie »), plateau, panneau d'état (tour, joueurs, « L'ordinateur réfléchit… »). Elle affiche la `GameSession` et lui passe ce que fait le joueur. |
+| `Components/NewGameDialog.razor` (+ `.cs`, `.css`) | Le dialogue « Nouvelle partie », dans la fenêtre : deux joueurs ou contre l'ordinateur, niveau, couleur. Il remplace une boîte de confirmation : il dit quand la partie en cours sera abandonnée. |
+| `Game/GameSetup.cs` | Comment la partie est montée : mode, niveau, couleur du joueur ; côté affiché en bas ; qui peut bouger. |
+| `Game/GameSession.cs` | Une partie : les règles, l'ordinateur quand il joue, le tour. Joue la réponse de l'ordinateur après chaque coup du joueur. |
+| `Engine/` | `EngineLevel` (5 niveaux), `IChessEngine`, `StockfishEngine` (stockfish.js par JS interop, lecture de `bestmove`). |
 | `Components/ChessBoard.razor` (+ `.cs`, `.css`, `.js`) | Le plateau SVG. Il ne connaît aucune règle : il dessine le snapshot et transforme souris, toucher et clavier en `MoveRequest`. |
 | `Components/SvgText.cs` | Un élément SVG `<text>` (Razor réserve la balise `<text>`). |
 | `Interaction/BoardInteraction.cs` | La main du joueur au-dessus du plateau, immuable : pièce choisie, curseur clavier, promotion en attente. |
 | `Model/` | `Square`, `Piece`, `BoardPosition` (lecture du FEN), `MoveRequest` (notation UCI), `GameSnapshot`, `GameStatus`. |
 | `Rules/` | `IChessRules`, `ChessJsRules` (chess.js par JS interop) et `GameSnapshotJson` (lecture du snapshot). |
 | `wwwroot/js/chess-rules.js` | Adapte chess.js : une partie par `createGame`, et après chaque coup un snapshot JSON complet. |
+| `wwwroot/js/chess-engine.js` | Lance Stockfish dans un Web Worker et lui parle en UCI. |
+| `wwwroot/engine/` | Stockfish 19 « lite, single-threaded » de stockfish.js 19.0.1 (GPL-3.0) : `.js` (28 Ko) et `.wasm` (1,8 Mo). |
 | `wwwroot/lib/chess.js/` | chess.js 1.4.0 (BSD-2-Clause), build ESM du paquet npm. |
 | `wwwroot/pieces/celtic/` | Les pièces « celtic » de Maurizio Monge (MIT). |
 | `Resources/` | Textes en anglais et en français (`Strings`, `AppManifest.fr`). |
@@ -78,6 +85,52 @@ C# ne pose jamais deux questions à chess.js pour un affichage :
 (sûr pour l'hôte publié en mode trimmé). Un mat l'emporte sur une règle de
 nulle signalée en même temps. Un coup illégal renvoie `null` et la position ne
 change pas.
+
+### Partie contre l'ordinateur
+
+« Nouvelle partie » ouvre un dialogue : deux joueurs sur cet écran, ou contre
+l'ordinateur avec un niveau et une couleur (Blancs, Noirs, au hasard). Contre
+l'ordinateur, le plateau montre le côté du joueur en bas et se verrouille
+pendant que l'ordinateur joue.
+
+| Niveau | `Skill Level` UCI | Temps de réflexion (`go movetime`) |
+| --- | --- | --- |
+| Débutant | 0 | 300 ms |
+| Facile | 5 | 400 ms |
+| Moyen | 10 | 600 ms |
+| Difficile | 15 | 900 ms |
+| Expert | 20 | 1 500 ms |
+
+Le moteur est Stockfish 19 « lite, single-threaded » (stockfish.js) : il tourne
+dans un Web Worker, sans isolation cross-origin, et ne se télécharge qu'à la
+première partie contre l'ordinateur (1,8 Mo). `chess-engine.js` ne fait que
+parler UCI (`uci`, `isready`, `ucinewgame`, `setoption name Skill Level`,
+`position fen`, `go movetime`, `stop`) et met les recherches en file.
+
+`GameSession` fait passer chaque changement de la partie par une seule porte :
+un coup et une nouvelle partie ne se croisent jamais. Chaque nouvelle partie
+prend son numéro **avant** d'attendre la porte et annule la recherche en cours
+(Stockfish s'arrête tout de suite) : tout ce qui attendait derrière la porte
+pour une partie plus ancienne (un départ, un coup, le tour de l'ordinateur) voit
+un numéro plus récent et abandonne. Rien d'une ancienne partie n'arrive dans la
+nouvelle.
+
+Pannes :
+
+- chaque demande au worker a une **échéance** (20 s pour la poignée de main
+  UCI, le temps de réflexion plus 5 s pour une recherche) ; un worker muet est
+  arrêté et l'erreur s'affiche, la fenêtre ne se fige jamais ;
+- un moteur qui ne démarre pas est jeté et **un** moteur neuf est essayé ;
+- une nouvelle partie qui échoue **laisse la partie en cours telle quelle** (le
+  moteur et les règles sont prêts avant que la fenêtre change de partie), et
+  l'ordinateur reprend son tour s'il réfléchissait ;
+- un worker qui meurt en cours de partie est signalé ; la nouvelle partie
+  suivante en lance un neuf ;
+- un worker créé après la fermeture de la fenêtre est arrêté aussitôt.
+
+**Limite connue** : Stockfish reçoit la position (`position fen`), pas
+l'historique des coups. Il ne voit donc pas les répétitions et peut aller vers
+une nulle par triple répétition qu'il éviterait autrement.
 
 ### Saisie des coups
 
@@ -135,9 +188,9 @@ dans le menu Applications (« Toutes les applications » sur mobile).
 
 | Suite | Ce qu'elle couvre |
 | --- | --- |
-| `tests/Kazo.Chess.Tests` | `Square`, `BoardPosition`, `MoveRequest`, `GameStatus`, lecture des snapshots (sur des snapshots réels de chess.js dans `Fixtures/`, écrits par `tests/js/write-fixtures.mjs`), `ChessJsRules` (sur un faux runtime JS : une nouvelle partie qui échoue garde l'ancienne) et toute l'interaction du plateau. 91 tests, 98 % des lignes de `Model/`, `Interaction/` et `Rules/`. |
-| `tests/js` | Le module `chess-rules.js` avec chess.js : coups légaux et illégaux, mat, pat, promotion, matériel insuffisant, règle des 50 coups. |
-| `tests/e2e` | L'app dans l'hôte, dans Chromium : coups au clic, au glisser et au clavier ; mat du berger (plateau verrouillé) ; promotion (annulée au bouton, puis choisie au clavier avec le focus sur le sélecteur) ; écran de téléphone (Pixel 7) et toucher. `CHESS_BASE_URL` réutilise un hôte déjà lancé. |
+| `tests/Kazo.Chess.Tests` | `Square`, `BoardPosition`, `MoveRequest`, `GameStatus`, lecture des snapshots (sur des snapshots réels de chess.js dans `Fixtures/`, écrits par `tests/js/write-fixtures.mjs`), `ChessJsRules` (sur un faux runtime JS : une nouvelle partie qui échoue garde l'ancienne) toute l'interaction du plateau, `GameSetup`, `GameSession` (avec un faux moteur : réponse de l'ordinateur, coup refusé, nouvelle partie pendant qu'il réfléchit, moteur qui ne démarre pas) et `StockfishEngine` (faux worker : un seul démarrage, options UCI, `stop` à l'annulation, jeton déjà annulé, fermeture pendant le démarrage) ; courses de `GameSession` : deux nouvelles parties qui se chevauchent, coup demandé pendant un départ, coup trouvé au moment d'une nouvelle partie, départ qui échoue, abonné de `Changed` qui lève une exception. 135 tests. |
+| `tests/js` | Le module `chess-rules.js` avec chess.js : coups légaux et illégaux, mat, pat, promotion, matériel insuffisant, règle des 50 coups. Le module `chess-engine.js` avec un faux worker : ordre UCI, file des recherches, `stop`, échéances, erreur du worker, `terminate`. 15 tests. |
+| `tests/e2e` | L'app dans l'hôte, dans Chromium : coups au clic, au glisser et au clavier ; mat du berger (plateau verrouillé) ; promotion (annulée au bouton, puis choisie au clavier avec le focus sur le sélecteur) ; écran de téléphone (Pixel 7) et toucher ; contre Stockfish avec les Noirs (il ouvre, on répond, il rejoue) ; Échap ferme le dialogue et rend le focus ; une nouvelle partie pendant que Stockfish réfléchit (son coup n'est pas joué). 7 parcours. `CHESS_BASE_URL` réutilise un hôte déjà lancé. |
 
 La CI (`.github/workflows/ci.yml`) fait tout cela à chaque push et à chaque PR.
 
@@ -172,5 +225,16 @@ Chantier 1 (`chess/1-board-and-rules`) :
 - [x] Tests C#, node et de bout en bout ; mobile vérifié (Pixel 7).
 - [x] CI GitHub Actions.
 
-Suite du plan : chantier 2 (stockfish.js), puis historique, annuler, retourner
-le plateau, pendule, fichiers `.pgn` (voir le [plan](plan.md)).
+Chantier 2 (`chess/2-engine`) :
+
+- [x] Stockfish 19 « lite, single-threaded » dans un Web Worker, chargé à la demande.
+- [x] 5 niveaux (`Skill Level` 0, 5, 10, 15, 20), choix de la couleur (dont au hasard).
+- [x] Dialogue « Nouvelle partie » dans la fenêtre, plateau tourné vers le joueur.
+- [x] `GameSession` : réponses de l'ordinateur, annulation à la nouvelle partie.
+- [x] Tests C# (faux moteur et faux worker) et de bout en bout contre Stockfish.
+- [x] Relecture indépendante : numéro de partie pris avant la porte, échéances du
+  worker, départ raté sans effet sur la partie en cours, focus et clavier du
+  dialogue (Échap, Tab, retour au bouton).
+
+Suite du plan : historique, annuler, retourner le plateau, pendule, fichiers
+`.pgn` (voir le [plan](plan.md)).
