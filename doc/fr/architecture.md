@@ -289,9 +289,17 @@ Avec HackerOS 2.2.1 (sous-module `v2.2.1`, paquets de nuget.org),
 traduction française et 23 ressources statiques. Il avertit (`HOSAPP0063`) tant
 que le paquet n'est pas signé. Il ne reste rien à attendre côté HackerOS :
 Benoit fusionne `chess/base` dans `main`, ajoute les secrets `HACK_STORE_TOKEN`
-(et `HACKEROS_APP_SIGNING_KEY` pour signer) et crée le tag `v1.0.0`. Le catalogue
-doit d'abord accepter le manifeste du paquet
-(Kazo-ca/HackerOs-AppMarketPlace#6).
+(et `HACKEROS_APP_SIGNING_KEY` pour signer) et crée le tag `v1.0.0`.
+
+La CI du catalogue compile Chess au commit du tag ainsi : le sous-module
+`external/HackerOs`, puis `dotnet build -c Release -t:HackerOsPack` sur le
+`project` que nomme `store/store.json` (`src/Kazo.Chess/Kazo.Chess.csproj` ; à
+la racine, la cible tournerait aussi sur le projet de tests, qui ne l'a pas).
+Elle a besoin de Kazo-ca/HackerOs-AppMarketPlace#7 (sous-module récupéré,
+manifeste du paquet, lecteur sur HackerOS 2.2.1). Cette PR a été vérifiée avec le
+vrai paquet Chess : `validate` et `check-package` passent (« the package matches
+its folder »). Le catalogue signe le paquet à la publication
+(`HACK_STORE_SIGNING_KEY`), et HackerOS 2.2.2 exige cette signature.
 
 ## Construire, lancer et tester
 
@@ -388,7 +396,8 @@ Chantier 5 (`chess/5-solution-template`) :
 - [x] CI sur le profil Release (sous-module vérifié, C#, node, E2E) ; workflow
   `publish-to-hack-store.yml`.
 - [x] Dossier `store/` : icône 256×256, descriptions courtes et longues (fr, en),
-  captures, `store.json` (catégorie `entertainment`, licence GPL-3.0).
+  captures, `store.json` (catégorie `entertainment`, licence GPL-3.0, `project`
+  ajouté au chantier 8).
 - [x] Version `1.0.0` dans le manifeste, catégorie `entertainment`.
 - [x] Ressources de l'app installée par le Store : corrigé dans HackerOS (ADR 0221).
 
@@ -408,4 +417,4 @@ Chantier 7 (`chess/7-hackeros-2.2.1`) :
 - [x] Paquet de 27 fichiers, traduction française comprise ; `test:installed`
   réussi sur HackerOS 2.2.1.
 - [ ] Tag `v1.0.0` (créé par Benoit après la fusion dans `main`) et pull request
-  vers le catalogue (issue #3), après Kazo-ca/HackerOs-AppMarketPlace#6.
+  vers le catalogue (issue #3), après Kazo-ca/HackerOs-AppMarketPlace#7.

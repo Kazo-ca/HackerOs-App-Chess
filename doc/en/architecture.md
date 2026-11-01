@@ -281,8 +281,17 @@ With HackerOS 2.2.1 (submodule `v2.2.1`, packages from nuget.org),
 translation and 23 static resources. It warns (`HOSAPP0063`) while the package
 is not signed. Nothing is left to wait for on the HackerOS side: Benoit merges
 `chess/base` into `main`, adds the `HACK_STORE_TOKEN` secret (and
-`HACKEROS_APP_SIGNING_KEY` to sign) and creates the `v1.0.0` tag. The catalog
-must first accept the package's manifest (Kazo-ca/HackerOs-AppMarketPlace#6).
+`HACKEROS_APP_SIGNING_KEY` to sign) and creates the `v1.0.0` tag.
+
+The catalog's CI builds Chess at the tag's commit like this: the
+`external/HackerOs` submodule, then `dotnet build -c Release -t:HackerOsPack` on
+the `project` that `store/store.json` names (`src/Kazo.Chess/Kazo.Chess.csproj`;
+at the root, the target would also run on the tests project, which has none).
+It needs Kazo-ca/HackerOs-AppMarketPlace#7 (submodule fetched, package's
+manifest, reader on HackerOS 2.2.1). That PR was checked with the real Chess
+package: `validate` and `check-package` pass ("the package matches its folder").
+The catalog signs the package at publication (`HACK_STORE_SIGNING_KEY`), and
+HackerOS 2.2.2 requires that signature.
 
 ## Building, running and testing
 
@@ -378,7 +387,8 @@ Work item 5 (`chess/5-solution-template`):
 - [x] CI on the Release profile (submodule checked, C#, node, E2E);
   `publish-to-hack-store.yml` workflow.
 - [x] `store/` folder: 256×256 icon, short and long descriptions (fr, en),
-  screenshots, `store.json` (category `entertainment`, GPL-3.0 licence).
+  screenshots, `store.json` (category `entertainment`, GPL-3.0 licence, `project`
+  added by work item 8).
 - [x] Version `1.0.0` in the manifest, category `entertainment`.
 - [x] Resources of the app when installed by the Store: fixed in HackerOS (ADR 0221).
 
@@ -398,4 +408,4 @@ Work item 7 (`chess/7-hackeros-2.2.1`):
 - [x] 27-file package, French translation included; `test:installed` passed on
   HackerOS 2.2.1.
 - [ ] `v1.0.0` tag (created by Benoit after the merge into `main`) and pull
-  request to the catalog (issue #3), after Kazo-ca/HackerOs-AppMarketPlace#6.
+  request to the catalog (issue #3), after Kazo-ca/HackerOs-AppMarketPlace#7.
