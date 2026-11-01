@@ -75,4 +75,5 @@ dans la série `chess/base` (une branche et une PR par chantier).
 | 2. Contre l'ordinateur : stockfish.js lite, 5 niveaux, choix de la couleur | `chess/2-engine` | Fait (Stockfish 19 lite, 1,8 Mo) |
 | 3. Historique, annuler, retourner le plateau, pendule | `chess/3-history-and-clock` | Fait (Stockfish reçoit aussi l'historique) |
 | 4. Fichiers `.pgn`, association de fichiers | `chess/4-pgn-files` | Fait |
-| 5. Passage au modèle `hackeros-solution`, dossier `store/`, tag `v1.0.0` | `chess/5-solution-template` | Modèle et `store/` faits sur HackerOS 2.2.0 ; le tag attend la correction de HackerOS (ressources et CSS d'une app installée, choisie le 2026-10-31) |
+| 5. Passage au modèle `hackeros-solution`, dossier `store/` | `chess/5-solution-template` | Fait sur HackerOS 2.2.0 |
+| 6. App installée : workflows du modèle, vérification par `hackpkg`, tag `v1.0.0` | `chess/6-installed-app` | Chess installé vérifié sur HackerOS `main` (ADR 0221) ; le tag attend HackerOS 2.2.1 (avec l'ADR 0222, traductions) |

@@ -14,6 +14,10 @@ cd HackerOs-App-Chess
 dotnet run --project src/Kazo.Chess.Os -c Release   # un HackerOS avec Chess dans le menu Applications
 ```
 
+Dans HackerOS, Chess s'installe depuis le Hack Store, ou dans le Terminal avec
+`sudo hackpkg install Kazo-ca/HackerOs-App-Chess` (branche `hackeros-packages` de ce dépôt), une fois
+la première version publiée.
+
 Le dépôt suit le modèle `hackeros-solution` : `external/HackerOs` est HackerOS en sous-module sur
 son tag de release (2.2.0), qui fixe la version de tous les paquets HackerOS.
 

@@ -485,3 +485,6 @@ $RECYCLE.BIN/
 # Node test runs
 node_modules/
 /node_modules
+
+# Private signing keys (ADR 0219 of HackerOS): never in the repository.
+*.pem
