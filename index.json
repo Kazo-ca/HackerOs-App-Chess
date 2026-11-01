@@ -1,0 +1,10 @@
+{
+  "appId": "ca.kazo.chess",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "path": "1.0.0/ca.kazo.chess-1.0.0.hackapp",
+      "sha256": "997b2df379391f38ea2c5a6ecc4b0b319b3fcb16baac3208d002806154013055"
+    }
+  ]
+}
