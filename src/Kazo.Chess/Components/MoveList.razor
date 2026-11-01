@@ -1,0 +1,44 @@
+@using Kazo.Chess.Model
+
+@* The moves of the game in pairs, as on a score sheet. The column-reverse scroller keeps the newest
+   move in view without any script. *@
+<div class="move-list-scroller" role="region" aria-label="@Label" tabindex="0">
+    @if (History.Count == 0)
+    {
+        <p class="move-list-empty">@EmptyText</p>
+    }
+    else
+    {
+        <ol class="move-list">
+            @for (int index = 0; index < History.Count; index += 2)
+            {
+                int number = (index / 2) + 1;
+                PlayedMove white = History[index];
+                PlayedMove? black = index + 1 < History.Count ? History[index + 1] : null;
+                <li class="move-row">
+                    <span class="move-number">@number.</span>
+                    <span class="move @(index == History.Count - 1 ? "last" : string.Empty)">@white.San</span>
+                    @if (black is not null)
+                    {
+                        <span class="move @(index + 1 == History.Count - 1 ? "last" : string.Empty)">@black.San</span>
+                    }
+                </li>
+            }
+        </ol>
+    }
+</div>
+
+@code {
+    /// <summary>Gets or sets the moves played, oldest first (White's first; a game from a FEN where
+    /// Black starts is not offered by the app).</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<PlayedMove> History { get; set; } = [];
+
+    /// <summary>Gets or sets the accessible name of the list.</summary>
+    [Parameter]
+    public string Label { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the text shown before the first move.</summary>
+    [Parameter]
+    public string EmptyText { get; set; } = string.Empty;
+}

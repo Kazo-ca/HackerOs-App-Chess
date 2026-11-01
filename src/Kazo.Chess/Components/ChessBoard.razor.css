@@ -1,0 +1,193 @@
+/*
+  The board takes its colours from the OS theme: both squares are tinted by the theme's accent, the
+  light ones over ivory and the dark ones over slate, so the two stay apart in a dark theme as in a
+  light one; highlights use the theme's accent, warning and error colours. The fallbacks only apply
+  outside HackerOS (a theme always defines the tokens).
+
+  The coordinates are drawn by SvgText, a component without this file's scope attribute: their
+  rules go through ::deep from the board's own svg.
+*/
+.chess-board {
+    --board-accent: var(--hos-accent, #42d392);
+    --board-light: color-mix(in srgb, var(--board-accent) 28%, #eeeadf);
+    --board-dark: color-mix(in srgb, var(--board-accent) 55%, #1d2329);
+    --board-frame: var(--hos-border-strong, #3d4654);
+    position: relative;
+    container-type: size;
+    width: 100%;
+    height: 100%;
+    border: 2px solid var(--board-frame);
+    border-radius: var(--hos-radius-sm, 4px);
+    box-shadow: var(--hos-shadow-md, 0 8px 24px rgba(0, 0, 0, 0.45)), 0 0 18px var(--hos-accent-glow, transparent);
+    outline: none;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    /* The board handles touch itself: no scroll, no zoom, no long-press menu while playing. */
+    touch-action: none;
+    -webkit-touch-callout: none;
+}
+
+.chess-board:focus-visible {
+    border-color: var(--board-accent);
+    box-shadow: 0 0 0 2px var(--hos-focus-ring, var(--board-accent));
+}
+
+.board-svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.square.light {
+    fill: var(--board-light);
+}
+
+.square.dark {
+    fill: var(--board-dark);
+}
+
+.square.last-move {
+    fill: color-mix(in srgb, var(--hos-warning, #e3b341) 45%, var(--board-dark));
+}
+
+.square.light.last-move {
+    fill: color-mix(in srgb, var(--hos-warning, #e3b341) 40%, var(--board-light));
+}
+
+.square.selected {
+    fill: color-mix(in srgb, var(--board-accent) 75%, var(--hos-bg-base, #0d1117));
+}
+
+.square.check {
+    fill: color-mix(in srgb, var(--hos-error, #f85149) 70%, var(--board-dark));
+}
+
+.board-svg ::deep .coordinate {
+    font-family: var(--hos-font-mono, 'Consolas', monospace);
+    font-size: 0.17px;
+    font-weight: 700;
+    pointer-events: none;
+}
+
+.board-svg ::deep .coordinate.file {
+    text-anchor: end;
+}
+
+.board-svg ::deep .coordinate.on-light {
+    fill: var(--board-dark);
+}
+
+.board-svg ::deep .coordinate.on-dark {
+    fill: var(--board-light);
+}
+
+.piece {
+    cursor: default;
+}
+
+.piece[data-movable="true"] {
+    cursor: grab;
+}
+
+.piece.drag-source {
+    opacity: 0.3;
+}
+
+.target {
+    fill: color-mix(in srgb, var(--hos-bg-base, #0d1117) 45%, transparent);
+    pointer-events: none;
+}
+
+.target.capture {
+    fill: none;
+    stroke: color-mix(in srgb, var(--hos-bg-base, #0d1117) 50%, transparent);
+    stroke-width: 0.08;
+}
+
+/* The keyboard cursor only shows while the board has the keyboard focus. */
+.cursor {
+    display: none;
+    fill: none;
+    stroke: var(--board-accent);
+    stroke-width: 0.06;
+    stroke-dasharray: 0.16 0.08;
+    pointer-events: none;
+}
+
+.chess-board:focus-visible .cursor {
+    display: inline;
+}
+
+.promotion {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: color-mix(in srgb, var(--hos-bg-overlay, rgba(0, 0, 0, 0.6)) 85%, transparent);
+    backdrop-filter: blur(2px);
+}
+
+.promotion-title {
+    color: var(--hos-text-primary, #e6edf3);
+    font-family: var(--hos-font-mono, 'Consolas', monospace);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.promotion-choices {
+    display: flex;
+    gap: 8px;
+}
+
+.promotion-choice {
+    width: clamp(44px, 14cqmin, 96px);
+    aspect-ratio: 1;
+    padding: 4px;
+    background: var(--hos-bg-elevated, #1c2330);
+    border: 1px solid var(--hos-border, #30363d);
+    border-radius: var(--hos-radius-md, 6px);
+    cursor: pointer;
+    transition: border-color var(--hos-transition-fast, 120ms), transform var(--hos-transition-fast, 120ms);
+}
+
+.promotion-choice:hover,
+.promotion-choice:focus-visible {
+    border-color: var(--board-accent);
+    outline: none;
+    transform: translateY(-2px);
+}
+
+.promotion-cancel {
+    padding: 4px 14px;
+    background: transparent;
+    color: var(--hos-text-secondary, #c9d1d9);
+    border: 1px solid var(--hos-border, #30363d);
+    border-radius: var(--hos-btn-radius, 4px);
+    font: inherit;
+    cursor: pointer;
+}
+
+.promotion-cancel:hover,
+.promotion-cancel:focus-visible {
+    border-color: var(--board-accent);
+    color: var(--hos-text-primary, #e6edf3);
+    outline: none;
+}
+
+.promotion-choice img {
+    width: 100%;
+    height: 100%;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}

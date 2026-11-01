@@ -1,0 +1,12 @@
+{
+  "repository": "https://github.com/Kazo-ca/HackerOs-App-Chess",
+  "project": "src/Kazo.Chess/Kazo.Chess.csproj",
+  "category": "entertainment",
+  "tags": [
+    "chess",
+    "board-game",
+    "stockfish",
+    "pgn"
+  ],
+  "license": "GPL-3.0"
+}

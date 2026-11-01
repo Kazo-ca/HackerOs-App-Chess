@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AppTitle" xml:space="preserve">
+    <value>Chess</value>
+  </data>
+  <data name="BoardLabel" xml:space="preserve">
+    <value>Chessboard. Arrow keys move the cursor, Enter or Space picks a piece and plays it, Escape cancels.</value>
+  </data>
+  <data name="BoardRole" xml:space="preserve">
+    <value>chessboard</value>
+  </data>
+  <data name="CursorDescription" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="EmptySquare" xml:space="preserve">
+    <value>empty</value>
+  </data>
+  <data name="LoadingRules" xml:space="preserve">
+    <value>Loading the rules…</value>
+  </data>
+  <data name="NewGame" xml:space="preserve">
+    <value>New game</value>
+  </data>
+  <data name="PieceBlackBishop" xml:space="preserve">
+    <value>Black bishop</value>
+  </data>
+  <data name="PieceBlackKing" xml:space="preserve">
+    <value>Black king</value>
+  </data>
+  <data name="PieceBlackKnight" xml:space="preserve">
+    <value>Black knight</value>
+  </data>
+  <data name="PieceBlackPawn" xml:space="preserve">
+    <value>Black pawn</value>
+  </data>
+  <data name="PieceBlackQueen" xml:space="preserve">
+    <value>Black queen</value>
+  </data>
+  <data name="PieceBlackRook" xml:space="preserve">
+    <value>Black rook</value>
+  </data>
+  <data name="PieceWhiteBishop" xml:space="preserve">
+    <value>White bishop</value>
+  </data>
+  <data name="PieceWhiteKing" xml:space="preserve">
+    <value>White king</value>
+  </data>
+  <data name="PieceWhiteKnight" xml:space="preserve">
+    <value>White knight</value>
+  </data>
+  <data name="PieceWhitePawn" xml:space="preserve">
+    <value>White pawn</value>
+  </data>
+  <data name="PieceWhiteQueen" xml:space="preserve">
+    <value>White queen</value>
+  </data>
+  <data name="PieceWhiteRook" xml:space="preserve">
+    <value>White rook</value>
+  </data>
+  <data name="PlayerHuman" xml:space="preserve">
+    <value>Player</value>
+  </data>
+  <data name="PromotionTitle" xml:space="preserve">
+    <value>Promote to</value>
+  </data>
+  <data name="SideBlack" xml:space="preserve">
+    <value>Black</value>
+  </data>
+  <data name="SideWhite" xml:space="preserve">
+    <value>White</value>
+  </data>
+  <data name="StatusCheck" xml:space="preserve">
+    <value>{0} to move: check!</value>
+  </data>
+  <data name="StatusCheckmate" xml:space="preserve">
+    <value>Checkmate: {0} wins</value>
+  </data>
+  <data name="StatusFiftyMoveRule" xml:space="preserve">
+    <value>Draw: fifty-move rule</value>
+  </data>
+  <data name="StatusInsufficientMaterial" xml:space="preserve">
+    <value>Draw: insufficient material</value>
+  </data>
+  <data name="StatusStalemate" xml:space="preserve">
+    <value>Stalemate: draw</value>
+  </data>
+  <data name="StatusThreefoldRepetition" xml:space="preserve">
+    <value>Draw: threefold repetition</value>
+  </data>
+  <data name="StatusToMove" xml:space="preserve">
+    <value>{0} to move</value>
+  </data>
+  <data name="SelectionDescription" xml:space="preserve">
+    <value>{0} selected, {1} possible moves</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="PointerUnavailable" xml:space="preserve">
+    <value>The mouse and touch input could not load ({0}); the keyboard still plays.</value>
+  </data>
+  <data name="ModeLegend" xml:space="preserve">
+    <value>Players</value>
+  </data>
+  <data name="ModeTwoPlayers" xml:space="preserve">
+    <value>Two players on this screen</value>
+  </data>
+  <data name="ModeComputer" xml:space="preserve">
+    <value>Against the computer</value>
+  </data>
+  <data name="LevelLegend" xml:space="preserve">
+    <value>Computer level</value>
+  </data>
+  <data name="LevelBeginner" xml:space="preserve">
+    <value>Beginner</value>
+  </data>
+  <data name="LevelEasy" xml:space="preserve">
+    <value>Easy</value>
+  </data>
+  <data name="LevelMedium" xml:space="preserve">
+    <value>Medium</value>
+  </data>
+  <data name="LevelHard" xml:space="preserve">
+    <value>Hard</value>
+  </data>
+  <data name="LevelExpert" xml:space="preserve">
+    <value>Expert</value>
+  </data>
+  <data name="ColorLegend" xml:space="preserve">
+    <value>Your pieces</value>
+  </data>
+  <data name="ColorWhite" xml:space="preserve">
+    <value>White</value>
+  </data>
+  <data name="ColorBlack" xml:space="preserve">
+    <value>Black</value>
+  </data>
+  <data name="ColorRandom" xml:space="preserve">
+    <value>Random</value>
+  </data>
+  <data name="AbandonWarning" xml:space="preserve">
+    <value>The current game will be abandoned.</value>
+  </data>
+  <data name="Start" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="PlayerComputer" xml:space="preserve">
+    <value>Computer ({0})</value>
+  </data>
+  <data name="PlayerYou" xml:space="preserve">
+    <value>You</value>
+  </data>
+  <data name="ComputerThinking" xml:space="preserve">
+    <value>The computer is thinking…</value>
+  </data>
+  <data name="GameFailed" xml:space="preserve">
+    <value>The game could not continue: {0}</value>
+  </data>
+  <data name="Undo" xml:space="preserve">
+    <value>Undo move</value>
+  </data>
+  <data name="Flip" xml:space="preserve">
+    <value>Flip board</value>
+  </data>
+  <data name="MovesLabel" xml:space="preserve">
+    <value>Moves</value>
+  </data>
+  <data name="NoMoves" xml:space="preserve">
+    <value>No moves yet</value>
+  </data>
+  <data name="ClockLegend" xml:space="preserve">
+    <value>Clock</value>
+  </data>
+  <data name="ClockNone" xml:space="preserve">
+    <value>No clock</value>
+  </data>
+  <data name="ClockCustom" xml:space="preserve">
+    <value>Custom</value>
+  </data>
+  <data name="CustomMinutes" xml:space="preserve">
+    <value>Minutes per side</value>
+  </data>
+  <data name="CustomIncrement" xml:space="preserve">
+    <value>Seconds added per move</value>
+  </data>
+  <data name="ClockLabel" xml:space="preserve">
+    <value>{0} clock: {1}</value>
+  </data>
+  <data name="StatusTimeOut" xml:space="preserve">
+    <value>Out of time: {0} wins</value>
+  </data>
+  <data name="StatusTimeOutDraw" xml:space="preserve">
+    <value>Out of time, but no mating material left: draw</value>
+  </data>
+  <data name="LoadingEngine" xml:space="preserve">
+    <value>Starting the chess engine…</value>
+  </data>
+  <data name="Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="OpenTitle" xml:space="preserve">
+    <value>Open a game</value>
+  </data>
+  <data name="SaveTitle" xml:space="preserve">
+    <value>Save the game</value>
+  </data>
+  <data name="FilterPgn" xml:space="preserve">
+    <value>Chess games (PGN)</value>
+  </data>
+  <data name="FilterAll" xml:space="preserve">
+    <value>All files</value>
+  </data>
+  <data name="ConfirmOpen" xml:space="preserve">
+    <value>Abandon the current game and open another one?</value>
+  </data>
+  <data name="PgnInvalid" xml:space="preserve">
+    <value>{0} is not a game Chess can read: {1}</value>
+  </data>
+  <data name="FileFailed" xml:space="preserve">
+    <value>{0} could not be used: {1}</value>
+  </data>
+  <data name="Saved" xml:space="preserve">
+    <value>Saved as {0}.</value>
+  </data>
+  <data name="StatusRecorded" xml:space="preserve">
+    <value>Game over: {0} (as saved)</value>
+  </data>
+</root>

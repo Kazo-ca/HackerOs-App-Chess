@@ -3,8 +3,9 @@
 # Plan : l'app Chess pour HackerOS
 
 Plan **validé le 2026-10-29** par Benoit (fil « Planifier le Hack Store et
-l'app Chess »). Aucun code n'est écrit pour l'instant : ce document fixe la
-cible et l'ordre des choses à faire.
+l'app Chess »). Ce document fixe la cible et l'ordre des choses à faire ;
+l'avancement est en fin de page et le code est décrit dans
+[`architecture.md`](architecture.md).
 
 ## But
 
@@ -52,3 +53,28 @@ Le plan du Store est dans le dépôt HackerOs :
 
 - Ce dépôt : GPL-3.0.
 - stockfish.js : GPL-3.0. chess.js : BSD-2-Clause. Pièces : CC0 ou MIT.
+
+## Décisions du 2026-10-31
+
+| Sujet | Décision |
+| --- | --- |
+| Identifiants | Id `ca.kazo.chess`, éditeur `pub.kazo`. |
+| Nulles par triple répétition et 50 coups | Automatiques (comme chess.js et chess.com), pas à réclamer. |
+| Historique pour Stockfish | Le moteur reçoit la position de départ et tous les coups (chantier 3), pour voir les répétitions. |
+
+## Avancement
+
+Le 2026-10-30, Benoit a choisi de commencer avant les prérequis HackerOS : la
+solution part des paquets NuGet 2.1.0 (`hackeros-window` et `hackeros-host`)
+et passera au modèle `hackeros-solution` quand il existera. Le travail se fait
+dans la série `chess/base` (une branche et une PR par chantier).
+
+| Chantier | Branche | État |
+| --- | --- | --- |
+| 1. Plateau SVG, saisie (souris, toucher, clavier), règles par chess.js, deux joueurs | `chess/1-board-and-rules` | Fait (pièces « celtic », MIT) |
+| 2. Contre l'ordinateur : stockfish.js lite, 5 niveaux, choix de la couleur | `chess/2-engine` | Fait (Stockfish 19 lite, 1,8 Mo) |
+| 3. Historique, annuler, retourner le plateau, pendule | `chess/3-history-and-clock` | Fait (Stockfish reçoit aussi l'historique) |
+| 4. Fichiers `.pgn`, association de fichiers | `chess/4-pgn-files` | Fait |
+| 5. Passage au modèle `hackeros-solution`, dossier `store/` | `chess/5-solution-template` | Fait sur HackerOS 2.2.0 |
+| 6. App installée : workflows du modèle, vérification par `hackpkg` | `chess/6-installed-app` | Fait (Chess installé vérifié sur HackerOS `main`, ADR 0221) |
+| 7. HackerOS 2.2.1 (ressources, CSS et traductions d'une app installée), tag `v1.0.0` | `chess/7-hackeros-2.2.1` | Sous-module sur `v2.2.1`, paquet complet vérifié ; le tag attend Benoit (et HackerOs-AppMarketPlace#7) |

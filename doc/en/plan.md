@@ -3,8 +3,9 @@
 # Plan: the Chess app for HackerOS
 
 Plan **approved on 2026-10-29** by Benoit ("Plan the Hack Store and the Chess
-app" thread). No code is written yet: this document sets the target and the
-order of the work.
+app" thread). This document sets the target and the order of the work; the
+progress is at the end of the page and the code is described in
+[`architecture.md`](architecture.md).
 
 ## Goal
 
@@ -50,3 +51,29 @@ repository: `doc/en/wasm/dev/plans/hackeros-store.md` and ADRs 0188 to 0190.
 
 - This repository: GPL-3.0.
 - stockfish.js: GPL-3.0. chess.js: BSD-2-Clause. Pieces: CC0 or MIT.
+
+## Decisions of 2026-10-31
+
+| Topic | Decision |
+| --- | --- |
+| Identifiers | Id `ca.kazo.chess`, publisher `pub.kazo`. |
+| Threefold repetition and fifty-move draws | Automatic (as chess.js and chess.com), not claimed. |
+| History for Stockfish | The engine receives the start position and every move (work item 3), so it sees repetitions. |
+
+## Progress
+
+On 2026-10-30, Benoit chose to start before the HackerOS prerequisites: the
+solution starts from the NuGet 2.1.0 packages (`hackeros-window` and
+`hackeros-host`) and will move to the `hackeros-solution` template once it
+exists. The work goes through the `chess/base` series (one branch and one PR
+per work item).
+
+| Work item | Branch | State |
+| --- | --- | --- |
+| 1. SVG board, input (mouse, touch, keyboard), rules by chess.js, two players | `chess/1-board-and-rules` | Done ("celtic" pieces, MIT) |
+| 2. Against the computer: stockfish.js lite, 5 levels, colour choice | `chess/2-engine` | Done (Stockfish 19 lite, 1.8 MB) |
+| 3. History, undo, flip the board, clock | `chess/3-history-and-clock` | Done (Stockfish also receives the history) |
+| 4. `.pgn` files, file association | `chess/4-pgn-files` | Done |
+| 5. Move to the `hackeros-solution` template, `store/` folder | `chess/5-solution-template` | Done on HackerOS 2.2.0 |
+| 6. Installed app: template workflows, check through `hackpkg` | `chess/6-installed-app` | Done (installed Chess checked on HackerOS `main`, ADR 0221) |
+| 7. HackerOS 2.2.1 (an installed app's resources, CSS and translations), `v1.0.0` tag | `chess/7-hackeros-2.2.1` | Submodule on `v2.2.1`, full package checked; the tag waits for Benoit (and HackerOs-AppMarketPlace#7) |
