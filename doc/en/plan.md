@@ -75,4 +75,5 @@ per work item).
 | 3. History, undo, flip the board, clock | `chess/3-history-and-clock` | Done (Stockfish also receives the history) |
 | 4. `.pgn` files, file association | `chess/4-pgn-files` | Done |
 | 5. Move to the `hackeros-solution` template, `store/` folder | `chess/5-solution-template` | Done on HackerOS 2.2.0 |
-| 6. Installed app: template workflows, check through `hackpkg`, `v1.0.0` tag | `chess/6-installed-app` | Installed Chess checked on HackerOS `main` (ADR 0221); the tag waits for HackerOS 2.2.1 (with ADR 0222, translations) |
+| 6. Installed app: template workflows, check through `hackpkg` | `chess/6-installed-app` | Done (installed Chess checked on HackerOS `main`, ADR 0221) |
+| 7. HackerOS 2.2.1 (an installed app's resources, CSS and translations), `v1.0.0` tag | `chess/7-hackeros-2.2.1` | Submodule on `v2.2.1`, full package checked; the tag waits for Benoit (and HackerOs-AppMarketPlace#6) |
