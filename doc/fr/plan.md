@@ -77,4 +77,5 @@ dans la série `chess/base` (une branche et une PR par chantier).
 | 4. Fichiers `.pgn`, association de fichiers | `chess/4-pgn-files` | Fait |
 | 5. Passage au modèle `hackeros-solution`, dossier `store/` | `chess/5-solution-template` | Fait sur HackerOS 2.2.0 |
 | 6. App installée : workflows du modèle, vérification par `hackpkg` | `chess/6-installed-app` | Fait (Chess installé vérifié sur HackerOS `main`, ADR 0221) |
-| 7. HackerOS 2.2.1 (ressources, CSS et traductions d'une app installée), tag `v1.0.0` | `chess/7-hackeros-2.2.1` | Sous-module sur `v2.2.1`, paquet complet vérifié ; le tag attend Benoit (et HackerOs-AppMarketPlace#7) |
+| 7. HackerOS 2.2.1 (ressources, CSS et traductions d'une app installée), tag `v1.0.0` | `chess/7-hackeros-2.2.1` | Fait (tag `v1.0.0`, paquet publié sur la branche `hackeros-packages`) |
+| 8. Publication au Hack Store : PR au catalogue, vérification, signature, installation | Kazo-ca/HackerOs-AppMarketPlace#8 | Fait (Chess 1.0.0 dans le catalogue officiel, signé ; installé depuis le Hack Store et par `hackpkg install ca.kazo.chess` sur HackerOS 2.2.2, signature vérifiée) |
