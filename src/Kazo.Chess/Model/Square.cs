@@ -31,14 +31,17 @@ public readonly record struct Square
     public int Rank { get; }
 
     /// <summary>Gets the algebraic name of the square, for example <c>e4</c>.</summary>
-    public string Name => string.Create(2, this, static (span, square) =>
-    {
-        span[0] = (char)('a' + square.File);
-        span[1] = (char)('1' + square.Rank);
-    });
+    public string Name => Names[(Rank * Size) + File];
 
     /// <summary>Gets whether the square is a dark one (a1 is dark).</summary>
     public bool IsDark => (File + Rank) % 2 == 0;
+
+    // The 64 names, built once. Plain char[] strings: an installed app may only call the APIs the
+    // trimmed OS keeps, and string.Create(int, TState, SpanAction) is not one of them (hackpkg
+    // refuses the package, apps.package.missing-api).
+    private static readonly string[] Names = Enumerable.Range(0, Size * Size)
+        .Select(index => new string(new[] { (char)('a' + (index % Size)), (char)('1' + (index / Size)) }))
+        .ToArray();
 
     /// <summary>Gets the 64 squares, a1 first, then b1 … h8.</summary>
     public static IReadOnlyList<Square> All { get; } =
