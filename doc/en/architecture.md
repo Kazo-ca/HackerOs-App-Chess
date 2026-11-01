@@ -32,7 +32,7 @@ HackerOs-App-Chess/
 └─ package.json              # tools of the JavaScript tests
 ```
 
-**`hackeros-solution` layout** (HackerOS 2.2.0, ADRs 0176 and 0207). The
+**`hackeros-solution` layout** (HackerOS 2.2.1, ADRs 0176 and 0207). The
 repository follows the template's output: `external/HackerOs` is HackerOS as a
 submodule, exactly on a release tag, and its `build/Versions.props` gives
 **the** version of the repository. Changing the HackerOS version means moving

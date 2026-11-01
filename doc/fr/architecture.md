@@ -32,7 +32,7 @@ HackerOs-App-Chess/
 └─ package.json              # outils des tests JavaScript
 ```
 
-**Structure du modèle `hackeros-solution`** (HackerOS 2.2.0, ADR 0176 et
+**Structure du modèle `hackeros-solution`** (HackerOS 2.2.1, ADR 0176 et
 0207). Le dépôt suit la sortie du modèle : `external/HackerOs` est HackerOS en
 sous-module, exactement sur un tag de release, et son `build/Versions.props`
 donne **la** version du dépôt. Changer de version de HackerOS, c'est déplacer le

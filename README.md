@@ -19,7 +19,7 @@ In HackerOS, Chess is installed from the Hack Store, or in the Terminal with
 the first version is published.
 
 The repository follows the `hackeros-solution` template: `external/HackerOs` is HackerOS as a
-submodule on its release tag (2.2.0), which sets the version of every HackerOS package.
+submodule on its release tag (2.2.1), which sets the version of every HackerOS package.
 
 - Plan: [English](doc/en/plan.md) · [Français](doc/fr/plan.md)
 - Architecture, build and tests: [English](doc/en/architecture.md) · [Français](doc/fr/architecture.md)
