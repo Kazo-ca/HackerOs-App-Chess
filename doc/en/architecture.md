@@ -263,24 +263,26 @@ checked by `npm run test:installed` (below):
 
 1. Its static files come with the package. In HackerOS 2.2.0, the package only
    held the declared `Assets` (for Chess, `icons/app.svg`) and the OS did not
-   load the scoped CSS. Fixed by HackerOS ADR 0221 (merged on 2026-11-01): the
-   package holds the whole `wwwroot/`, `ChessBoard.razor.js` and
-   `Kazo.Chess.bundle.scp.css` (23 files), and the OS links the sheet.
+   load the scoped CSS. Fixed by HackerOS ADR 0221 (2.2.1): the package holds
+   the whole `wwwroot/`, `ChessBoard.razor.js` and `Kazo.Chess.bundle.scp.css`,
+   and the OS links the sheet.
 2. `hackpkg` refuses an app that calls an API the OS's trimmed publish removed
    (`apps.package.missing-api`). Chess called
    `string.Create(int, TState, SpanAction)` (`Square.Name`) and
    `Enumerable.ToHashSet` (`BoardInteraction`): replaced by an array of names
    and `new HashSet<T>(…)`. The C# tests and the E2E runs in the host do not see
    this refusal (the host is not trimmed); only `test:installed` does.
-3. Its translations (`fr/Kazo.Chess.resources.dll`) are not in the package yet:
-   PR Kazo-ca/HackerOs#340 (ADR 0222). Installed before it, Chess shows in
-   English.
+3. Its translations come with the package too: since HackerOS ADR 0222 (2.2.1),
+   `lib/fr/Kazo.Chess.resources.dll` is in it, and the OS loads it before the
+   first render.
 
-The `v1.0.0` tag waits for HackerOS **2.2.1**, which brings ADRs 0221 and 0222
-(Benoit waits for #340 to be merged before releasing it). Then the submodule
-moves to `v2.2.1`, Benoit merges `chess/base` into `main`, adds the
-`HACK_STORE_TOKEN` secret (and `HACKEROS_APP_SIGNING_KEY` to sign), and
-creates the tag.
+With HackerOS 2.2.1 (submodule `v2.2.1`, packages from nuget.org),
+`HackerOsPack` makes a 27-file package: `lib/Kazo.Chess.dll`, its French
+translation and 23 static resources. It warns (`HOSAPP0063`) while the package
+is not signed. Nothing is left to wait for on the HackerOS side: Benoit merges
+`chess/base` into `main`, adds the `HACK_STORE_TOKEN` secret (and
+`HACKEROS_APP_SIGNING_KEY` to sign) and creates the `v1.0.0` tag. The catalog
+must first accept the package's manifest (Kazo-ca/HackerOs-AppMarketPlace#6).
 
 ## Building, running and testing
 
@@ -309,7 +311,7 @@ Applications menu ("All applications" on mobile).
 | --- | --- |
 | `tests/Kazo.Chess.Tests` | `Square`, `BoardPosition`, `MoveRequest`, `GameStatus`, snapshot reading (on real chess.js snapshots in `Fixtures/`, written by `tests/js/write-fixtures.mjs`), `ChessJsRules` (on a fake JS runtime: a failed new game keeps the current one) the whole board interaction, `GameSetup`, `GameSession` (with a fake engine: the computer's reply, a refused move, a new game while it thinks, an engine that fails to start) and `StockfishEngine` (fake worker: one start, UCI options, `stop` on cancellation, token already cancelled, close during start); `GameSession` races: two overlapping new games, a move asked during a start, a move found as a new game starts, a failed start, a `Changed` subscriber that throws; the clock (on a fake `TimeProvider`), time-out, undo, the position sent to the engine; PGN (results, tags, loaded game, recorded result, file too large, failed load while the computer thinks). 199 tests. |
 | `tests/js` | The `chess-rules.js` module with chess.js: legal and illegal moves, mate, stalemate, promotion, insufficient material, fifty-move rule. The `chess-engine.js` module with a fake worker: UCI order, search queue, `stop`, deadlines, worker error, `terminate`. Undo, start position, promotion in the history; PGN round trip, `[FEN]` start, invalid text, hostile name, collection, over 1,000 half-moves. 26 tests. |
-| `tests/installed` | Chess as the Store installs it, in the published, trimmed OS: `sudo hackpkg install` (API check included), opening (scoped CSS linked, window styled, pieces), a game against Stockfish as Black; no console error. Checked on 2026-11-01 with HackerOS `main` (ADR 0221). |
+| `tests/installed` | Chess as the Store installs it, in the published, trimmed OS: `sudo hackpkg install` (API check included), opening (scoped CSS linked, window styled, pieces), a game against Stockfish as Black; no console error. Checked on 2026-11-01 with HackerOS `main` (ADR 0221), then with HackerOS 2.2.1 and the package of its `HackerOsPack`. |
 | `tests/e2e` | The app in the host, in Chromium: moves by click, by drag and by keyboard; fool's mate (board locked); promotion (cancelled with the button, then chosen with the keyboard, the focus on the picker); phone screen (Pixel 7) and touch; against Stockfish as Black (it opens, the player answers, it plays again); Escape closes the dialog and gives the focus back; a new game while Stockfish thinks (its move is not played); undo and flip between two players, undo against the computer, a 5+0 clock; save a game as `.pgn` and open it again. 11 runs. `CHESS_BASE_URL` reuses a host already running. |
 
 The CI (`.github/workflows/ci.yml`) runs all of it on every push and PR.
@@ -388,6 +390,12 @@ Work item 6 (`chess/6-installed-app`):
 - [x] Chess installed by `hackpkg` checked end to end (`tests/installed`).
 - [x] APIs the trimmed OS removed replaced (`string.Create` with `SpanAction`,
   `ToHashSet`).
-- [ ] Submodule on `v2.2.1` once HackerOS releases it (ADRs 0221 and 0222).
+
+Work item 7 (`chess/7-hackeros-2.2.1`):
+
+- [x] Submodule on `v2.2.1` (HackerOS ADRs 0221 and 0222); Debug (sources) and
+  Release (nuget.org packages) profiles checked.
+- [x] 27-file package, French translation included; `test:installed` passed on
+  HackerOS 2.2.1.
 - [ ] `v1.0.0` tag (created by Benoit after the merge into `main`) and pull
-  request to the catalog (issue #3).
+  request to the catalog (issue #3), after Kazo-ca/HackerOs-AppMarketPlace#6.
