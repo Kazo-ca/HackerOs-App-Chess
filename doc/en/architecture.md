@@ -4,7 +4,7 @@
 
 ## Purpose
 
-Chess is a HackerOS window app: a chessboard drawn in SVG in the colours of
+Chess is a Kazo OS window app: a chessboard drawn in SVG in the colours of
 the OS theme, the rules of the game from
 [chess.js](https://github.com/jhlywa/chess.js), two players on the same
 screen or a game against the computer (Stockfish 19 from stockfish.js, in a Web
@@ -14,42 +14,42 @@ Worker). The goal and the decisions are in the
 ## Solution
 
 ```text
-HackerOs-App-Chess/
-├─ external/HackerOs/        # submodule: HackerOS on tag v2.2.0 (the repository's version)
+Os-App-Chess/
+├─ external/KazoOs/          # submodule: Kazo OS on tag v3.0.0 (the repository's version)
 ├─ Directory.Build.props     # submodule root, profile, import of Versions.props
-├─ Directory.Build.targets   # source mode in Debug, HOSAPP0070 without the submodule
+├─ Directory.Build.targets   # source mode in Debug, KOSAPP0070 without the submodule
 ├─ global.json
 ├─ Kazo.Chess.slnx
 ├─ src/
 │  ├─ Kazo.Chess/            # the app
-│  └─ Kazo.Chess.Os/         # host: HackerOS, its base apps and Chess
+│  └─ Kazo.Chess.Os/         # host: Kazo OS, its base apps and Chess
 ├─ tests/
 │  ├─ Kazo.Chess.Tests/      # C# unit tests (xUnit)
 │  ├─ js/                    # tests of the JavaScript modules (node --test)
 │  └─ e2e/                   # runs inside the host (node --test + Playwright)
-├─ store/                    # Hack Store listing: icon, descriptions, screenshots, store.json
-├─ .github/workflows/        # ci.yml, publish-to-hack-store.yml
+├─ store/                    # Kazo OS Store listing: icon, descriptions, screenshots, store.json
+├─ .github/workflows/        # ci.yml, publish-to-kazoos-store.yml
 └─ package.json              # tools of the JavaScript tests
 ```
 
-**`hackeros-solution` layout** (HackerOS 2.2.1, ADRs 0176 and 0207). The
-repository follows the template's output: `external/HackerOs` is HackerOS as a
+**`kazoos-solution` layout** (Kazo OS 3.0.0, ADRs 0176 and 0207). The
+repository follows the template's output: `external/KazoOs` is Kazo OS as a
 submodule, exactly on a release tag, and its `build/Versions.props` gives
-**the** version of the repository. Changing the HackerOS version means moving
+**the** version of the repository. Changing the Kazo OS version means moving
 the submodule to another tag. The submodule is never modified: CI refuses a
-modified submodule or one off its tag (`.github/scripts/check-hackeros-submodule.sh`).
+modified submodule or one off its tag (`.github/scripts/check-kazoos-submodule.sh`).
 
-| Profile | HackerOS comes from | Use |
+| Profile | Kazo OS comes from | Use |
 | --- | --- | --- |
-| `Debug` (`HackerOsUseSource=true`) | the submodule's projects (step into the SDK and the OS) | development, debugging |
-| `Release` (`HackerOsUseSource=false`) | the `HackerOs.*` packages from nuget.org, at the submodule's version | CI, E2E tests, Hack Store |
+| `Debug` (`KazoOsUseSource=true`) | the submodule's projects (step into the SDK and the OS) | development, debugging |
+| `Release` (`KazoOsUseSource=false`) | the `Kazo.Os.*` packages from nuget.org, at the submodule's version | CI, E2E tests, Kazo OS Store |
 
 Clone with `git clone --recurse-submodules`, or run `git submodule update
---init` afterwards (without the submodule the build stops on `HOSAPP0070`). In
-Debug the build compiles HackerOS from the submodule's sources (2 to 3 minutes
+--init` afterwards (without the submodule the build stops on `KOSAPP0070`). In
+Debug the build compiles Kazo OS from the submodule's sources (2 to 3 minutes
 the first time).
 
-**Host.** `Kazo.Chess.Os` is a full HackerOS with the base apps (the Hack Store
+**Host.** `Kazo.Chess.Os` is a full Kazo OS with the base apps (the Kazo OS Store
 among them) and Chess as a `ProjectReference`: its `wwwroot/` files are served
 at `_content/Kazo.Chess/`.
 
@@ -57,7 +57,7 @@ at `_content/Kazo.Chess/`.
 
 | Folder or file | Role |
 | --- | --- |
-| `ChessApp.cs` | Manifest (`[AppManifest]`): id `ca.kazo.chess`, version `1.0.0`, publisher `pub.kazo`, category `entertainment` (the catalog's closed list), desktop and mobile, 860×640 window (minimum 360×420). Capabilities `dialogs.file-open`, `dialogs.file-save`, `filesystem.user-home.read` and `.write`; opens `.pgn` files (`application/x-chess-pgn`). |
+| `ChessApp.cs` | Manifest (`[AppManifest]`): id `ca.kazo.chess`, version `1.1.0`, publisher `pub.kazo`, category `entertainment` (the catalog's closed list), desktop and mobile, 860×640 window (minimum 360×420). Capabilities `dialogs.file-open`, `dialogs.file-save`, `filesystem.user-home.read` and `.write`; opens `.pgn` files (`application/x-chess-pgn`). |
 | `Pgn/PgnTags.cs` | The tags of a saved game and its PGN result (`1-0`, `0-1`, `1/2-1/2`, `*`). |
 | `ChessWindow.razor` (+ `.cs`, `.css`) | The window: toolbar ("New game"), board, status panel (turn, players, "The computer is thinking…"). It shows the `GameSession` and forwards what the player does. |
 | `Components/NewGameDialog.razor` (+ `.cs`, `.css`) | The "New game" dialog, inside the window: two players or against the computer, level, colour. It replaces a confirmation box: it says when the current game will be abandoned. |
@@ -176,7 +176,7 @@ above): it sees repetitions.
 
 - **Save**: the SDK's save dialog suggests `chess-YYYY-MM-DD.pgn` (or the name
   of the open game); the file gets the seven tags (`Event "Casual game"`,
-  `Site "HackerOS"`, the date, the players, the result) then the moves, written
+  `Site "Kazo OS"`, the date, the players, the result) then the moves, written
   by chess.js. Against the computer the players are the login name and
   `Stockfish 19 lite (Skill N)`; between two players, `?`. The result follows
   the game: mate, draw, out of time, or `*` for a game still going.
@@ -197,7 +197,7 @@ above): it sees repetitions.
   it its turn back.
 - **Limits**: a reopened game saved again gets new tags (`Casual game`, today's
   date); the other tags it had are kept. Files are read and written by
-  `HackFile` with the home folder's
+  `KazoFile` with the home folder's
   rights; a file chosen elsewhere in the dialog is refused (the chosen handle is
   not used yet). The dialogs always get a starting folder: without it, the 2.1.0 (not checked again in 2.2.0)
   dialogs guess a home folder from the user's internal id, which does not exist,
@@ -228,10 +228,10 @@ trip per pointer move.
 
 ### Theme
 
-The colours come from the OS theme tokens (`--hos-*`): both square colours are
+The colours come from the OS theme tokens (`--kos-*`): both square colours are
 tinted by the theme's accent (over ivory and over slate, so they stay readable
-in a dark theme as in a light one); last move in `--hos-warning`, check in
-`--hos-error`, selection and cursor in `--hos-accent`. The board changes colour
+in a dark theme as in a light one); last move in `--kos-warning`, check in
+`--kos-error`, selection and cursor in `--kos-accent`. The board changes colour
 with the theme (green on the default desktop, blue on the mobile theme).
 
 ### Mobile
@@ -241,57 +241,57 @@ with the theme (green on the default desktop, blue on the mobile theme).
 that fits (`container-type: size`). `touch-action: none` on the board: a swipe
 plays, it does not scroll the page.
 
-## Publishing to the Hack Store
+## Publishing to the Kazo OS Store
 
 Two workflows of the template run on a `v<version>` tag (the manifest's
 `Version`):
 
-- `publish-to-hack-store.yml` checks the submodule, builds the app in Release,
-  packs it (`HackerOsPack`), assembles `apps/ca.kazo.chess_<version>/` from
+- `publish-to-kazoos-store.yml` checks the submodule, builds the app in Release,
+  packs it (`KazoOsPack`), assembles `apps/ca.kazo.chess_<version>/` from
   `store/` and the **package's** `manifest.json` (the one the catalog compares
   with the package its CI builds), and opens the pull request to
-  `Kazo-ca/HackerOs-AppMarketPlace` with the `HACK_STORE_TOKEN` secret
+  `Kazo-ca/Os-AppMarketPlace` with the `HACK_STORE_TOKEN` secret
   (otherwise it leaves the folder as an artifact).
-- `publish-packages.yml` (HackerOS ADR 0219) pushes the package to this
-  repository's `hackeros-packages` branch, for
-  `hackpkg install Kazo-ca/HackerOs-App-Chess` without the Store. With the
+- `publish-packages.yml` (Kazo OS ADR 0219) pushes the package to this
+  repository's `kazoos-packages` branch, for
+  `kazopkg install Kazo-ca/Os-App-Chess` without the Store. With the
   `HACKEROS_APP_SIGNING_KEY` secret the package is signed; without it, it is
   published unsigned with a warning.
 
 **An installed app is not an app compiled into the OS.** Three differences, all
 checked by `npm run test:installed` (below):
 
-1. Its static files come with the package. In HackerOS 2.2.0, the package only
+1. Its static files come with the package. In Kazo OS 2.2.0, the package only
    held the declared `Assets` (for Chess, `icons/app.svg`) and the OS did not
-   load the scoped CSS. Fixed by HackerOS ADR 0221 (2.2.1): the package holds
+   load the scoped CSS. Fixed by Kazo OS ADR 0221 (2.2.1): the package holds
    the whole `wwwroot/`, `ChessBoard.razor.js` and `Kazo.Chess.bundle.scp.css`,
    and the OS links the sheet.
-2. `hackpkg` refuses an app that calls an API the OS's trimmed publish removed
+2. `kazopkg` refuses an app that calls an API the OS's trimmed publish removed
    (`apps.package.missing-api`). Chess called
    `string.Create(int, TState, SpanAction)` (`Square.Name`) and
    `Enumerable.ToHashSet` (`BoardInteraction`): replaced by an array of names
    and `new HashSet<T>(…)`. The C# tests and the E2E runs in the host do not see
    this refusal (the host is not trimmed); only `test:installed` does.
-3. Its translations come with the package too: since HackerOS ADR 0222 (2.2.1),
+3. Its translations come with the package too: since Kazo OS ADR 0222 (2.2.1),
    `lib/fr/Kazo.Chess.resources.dll` is in it, and the OS loads it before the
    first render.
 
-With HackerOS 2.2.1 (submodule `v2.2.1`, packages from nuget.org),
-`HackerOsPack` makes a 27-file package: `lib/Kazo.Chess.dll`, its French
-translation and 23 static resources. It warns (`HOSAPP0063`) while the package
-is not signed. Nothing is left to wait for on the HackerOS side: Benoit merges
+With Kazo OS 2.2.1 (submodule `v2.2.1`, packages from nuget.org),
+`KazoOsPack` makes a 27-file package: `lib/Kazo.Chess.dll`, its French
+translation and 23 static resources. It warns (`KOSAPP0063`) while the package
+is not signed. Nothing is left to wait for on the Kazo OS side: Benoit merges
 `chess/base` into `main`, adds the `HACK_STORE_TOKEN` secret (and
 `HACKEROS_APP_SIGNING_KEY` to sign) and creates the `v1.0.0` tag.
 
 The catalog's CI builds Chess at the tag's commit like this: the
-`external/HackerOs` submodule, then `dotnet build -c Release -t:HackerOsPack` on
+`external/KazoOs` submodule, then `dotnet build -c Release -t:KazoOsPack` on
 the `project` that `store/store.json` names (`src/Kazo.Chess/Kazo.Chess.csproj`;
 at the root, the target would also run on the tests project, which has none).
-It needs Kazo-ca/HackerOs-AppMarketPlace#7 (submodule fetched, package's
-manifest, reader on HackerOS 2.2.1). That PR was checked with the real Chess
+It needs Kazo-ca/Os-AppMarketPlace#7 (submodule fetched, package's
+manifest, reader on Kazo OS 2.2.1). That PR was checked with the real Chess
 package: `validate` and `check-package` pass ("the package matches its folder").
 The catalog signs the package at publication (`HACK_STORE_SIGNING_KEY`), and
-HackerOS 2.2.2 requires that signature.
+Kazo OS 2.2.2 requires that signature.
 
 ## Building, running and testing
 
@@ -303,24 +303,24 @@ dotnet test Kazo.Chess.slnx -c Release --no-build   # C# unit tests
 npm ci && npm test                         # rules module under node
 npx playwright install chromium            # once
 npm run test:e2e                           # runs inside the host
-npm run test:installed -- <HackerOS wwwroot> <packages folder>   # Chess installed by hackpkg
+npm run test:installed -- <Kazo OS wwwroot> <packages folder>   # Chess installed by kazopkg
 ```
 
-`test:installed` needs a published HackerOS (for example
-`external/HackerOs/wasm2/HackerOs/build/publish-trimmed.sh`, then
+`test:installed` needs a published Kazo OS (for example
+`external/KazoOs/wasm2/KazoOs/build/publish-trimmed.sh`, then
 `artifacts/publish-trimmed/publish/wwwroot`) and the Chess package
-(`dotnet build src/Kazo.Chess -c Release -t:HackerOsPack`, folder
-`src/Kazo.Chess/bin/hackeros-packages`). It is not in CI: publishing the OS
+(`dotnet build src/Kazo.Chess -c Release -t:KazoOsPack`, folder
+`src/Kazo.Chess/bin/kazoos-packages`). It is not in CI: publishing the OS
 takes about ten minutes.
 
-On first boot, HackerOS asks to create the administrator; Chess is in the
+On first boot, Kazo OS asks to create the administrator; Chess is in the
 Applications menu ("All applications" on mobile).
 
 | Suite | What it covers |
 | --- | --- |
 | `tests/Kazo.Chess.Tests` | `Square`, `BoardPosition`, `MoveRequest`, `GameStatus`, snapshot reading (on real chess.js snapshots in `Fixtures/`, written by `tests/js/write-fixtures.mjs`), `ChessJsRules` (on a fake JS runtime: a failed new game keeps the current one) the whole board interaction, `GameSetup`, `GameSession` (with a fake engine: the computer's reply, a refused move, a new game while it thinks, an engine that fails to start) and `StockfishEngine` (fake worker: one start, UCI options, `stop` on cancellation, token already cancelled, close during start); `GameSession` races: two overlapping new games, a move asked during a start, a move found as a new game starts, a failed start, a `Changed` subscriber that throws; the clock (on a fake `TimeProvider`), time-out, undo, the position sent to the engine; PGN (results, tags, loaded game, recorded result, file too large, failed load while the computer thinks). 199 tests. |
 | `tests/js` | The `chess-rules.js` module with chess.js: legal and illegal moves, mate, stalemate, promotion, insufficient material, fifty-move rule. The `chess-engine.js` module with a fake worker: UCI order, search queue, `stop`, deadlines, worker error, `terminate`. Undo, start position, promotion in the history; PGN round trip, `[FEN]` start, invalid text, hostile name, collection, over 1,000 half-moves. 26 tests. |
-| `tests/installed` | Chess as the Store installs it, in the published, trimmed OS: `sudo hackpkg install` (API check included), opening (scoped CSS linked, window styled, pieces), a game against Stockfish as Black; no console error. Checked on 2026-11-01 with HackerOS `main` (ADR 0221), then with HackerOS 2.2.1 and the package of its `HackerOsPack`. |
+| `tests/installed` | Chess as the Store installs it, in the published, trimmed OS: `sudo kazopkg install` (API check included), opening (scoped CSS linked, window styled, pieces), a game against Stockfish as Black; no console error. Checked on 2026-11-01 with Kazo OS `main` (ADR 0221), then with Kazo OS 2.2.1 and the package of its `KazoOsPack`. |
 | `tests/e2e` | The app in the host, in Chromium: moves by click, by drag and by keyboard; fool's mate (board locked); promotion (cancelled with the button, then chosen with the keyboard, the focus on the picker); phone screen (Pixel 7) and touch; against Stockfish as Black (it opens, the player answers, it plays again); Escape closes the dialog and gives the focus back; a new game while Stockfish thinks (its move is not played); undo and flip between two players, undo against the computer, a 5+0 clock; save a game as `.pgn` and open it again. 11 runs. `CHESS_BASE_URL` reuses a host already running. |
 
 The CI (`.github/workflows/ci.yml`) runs all of it on every push and PR.
@@ -347,7 +347,7 @@ The CI (`.github/workflows/ci.yml`) runs all of it on every push and PR.
 
 Work item 1 (`chess/1-board-and-rules`):
 
-- [x] Solution generated by `hackeros-window` and `hackeros-host` (NuGet 2.1.0).
+- [x] Solution generated by `kazoos-window` and `kazoos-host` (NuGet 2.1.0).
 - [x] chess.js served by the app, `chess-rules.js` module, snapshot reader.
 - [x] SVG board in the theme colours, "celtic" pieces.
 - [x] Mouse (click and drag), touch, keyboard, promotion.
@@ -381,31 +381,46 @@ Work item 4 (`chess/4-pgn-files`):
 
 Work item 5 (`chess/5-solution-template`):
 
-- [x] `external/HackerOs` submodule on `v2.2.0`, `Directory.Build.props/targets`,
+- [x] `external/KazoOs` submodule on `v2.2.0`, `Directory.Build.props/targets`,
   `global.json`, submodule check, Debug (sources) and Release (packages) profiles
   checked.
 - [x] CI on the Release profile (submodule checked, C#, node, E2E);
-  `publish-to-hack-store.yml` workflow.
+  `publish-to-kazoos-store.yml` workflow.
 - [x] `store/` folder: 256×256 icon, short and long descriptions (fr, en),
   screenshots, `store.json` (category `entertainment`, GPL-3.0 licence, `project`
   added by work item 8).
 - [x] Version `1.0.0` in the manifest, category `entertainment`.
-- [x] Resources of the app when installed by the Store: fixed in HackerOS (ADR 0221).
+- [x] Resources of the app when installed by the Store: fixed in Kazo OS (ADR 0221).
 
 Work item 6 (`chess/6-installed-app`):
 
-- [x] Workflows aligned with the template of HackerOS `main`: the package's
-  manifest for the catalog, `publish-packages.yml` (`hackeros-packages` branch,
+- [x] Workflows aligned with the template of Kazo OS `main`: the package's
+  manifest for the catalog, `publish-packages.yml` (`kazoos-packages` branch,
   signing), `*.pem` ignored.
-- [x] Chess installed by `hackpkg` checked end to end (`tests/installed`).
+- [x] Chess installed by `kazopkg` checked end to end (`tests/installed`).
 - [x] APIs the trimmed OS removed replaced (`string.Create` with `SpanAction`,
   `ToHashSet`).
 
 Work item 7 (`chess/7-hackeros-2.2.1`):
 
-- [x] Submodule on `v2.2.1` (HackerOS ADRs 0221 and 0222); Debug (sources) and
+- [x] Submodule on `v2.2.1` (Kazo OS ADRs 0221 and 0222); Debug (sources) and
   Release (nuget.org packages) profiles checked.
 - [x] 27-file package, French translation included; `test:installed` passed on
-  HackerOS 2.2.1.
+  Kazo OS 2.2.1.
 - [ ] `v1.0.0` tag (created by Benoit after the merge into `main`) and pull
-  request to the catalog (issue #3), after Kazo-ca/HackerOs-AppMarketPlace#7.
+  request to the catalog (issue #3), after Kazo-ca/Os-AppMarketPlace#7.
+
+Kazo OS 3.0.0 (`rename/kazo-os-3`):
+
+- [x] HackerOS became Kazo OS (Kazo OS ADRs 0228 and 0229): submodule
+  `external/KazoOs` (`Kazo-ca/Os`) on `v3.0.0`, `Kazo.Os.*` 3.0.0 packages,
+  `Kazo.Os.*` namespaces and `Kazo*` types, `KazoOs*` MSBuild properties,
+  `--kos-*` theme tokens, `kazoos-packages` branch, `publish-to-kazoos-store.yml`
+  (to `Kazo-ca/Os-AppMarketPlace`). The GitHub secrets keep their names.
+- [x] Version `1.1.0` (minimum SDK `3.0.0`): Kazo OS 3.0 refuses the `1.0.0`
+  package, built against SDK 2.2.1 (`KOSAPP0021`).
+- [x] Release (nuget.org packages) and Debug (sources) profiles: C# tests,
+  JavaScript tests and E2E runs; `KazoOsPack` makes the 27-file
+  `ca.kazo.chess-1.1.0.kazoapp`.
+- [ ] `v1.1.0` tag (created by Benoit after the merge into `main`): publishes
+  on the `kazoos-packages` branch and opens the catalog pull request.

@@ -1,6 +1,6 @@
 # Échecs
 
-Un échiquier aux couleurs de votre thème HackerOS, sur le bureau comme sur un téléphone.
+Un échiquier aux couleurs de votre thème Kazo OS, sur le bureau comme sur un téléphone.
 
 ## Jouer
 

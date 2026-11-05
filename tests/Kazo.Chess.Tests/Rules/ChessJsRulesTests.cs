@@ -120,10 +120,10 @@ public sealed class ChessJsRulesTests
         await using var rules = new ChessJsRules(js);
         await rules.NewGameAsync();
 
-        string pgn = await rules.ExportPgnAsync(new PgnTags("Casual game", "HackerOS", "2026.10.31", "neo", "?", "1-0"));
+        string pgn = await rules.ExportPgnAsync(new PgnTags("Casual game", "Kazo OS", "2026.10.31", "neo", "?", "1-0"));
 
         Assert.Equal("[pgn]", pgn);
-        Assert.Equal(["pgn {\"Event\":\"Casual game\",\"Site\":\"HackerOS\",\"Date\":\"2026.10.31\",\"White\":\"neo\",\"Black\":\"?\",\"Result\":\"1-0\"}"], js.Module.Games[0].Moves);
+        Assert.Equal(["pgn {\"Event\":\"Casual game\",\"Site\":\"Kazo OS\",\"Date\":\"2026.10.31\",\"White\":\"neo\",\"Black\":\"?\",\"Result\":\"1-0\"}"], js.Module.Games[0].Moves);
     }
 
     [Fact]

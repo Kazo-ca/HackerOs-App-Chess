@@ -1,5 +1,5 @@
-using HackerOs.AppSdk;
-using HackerOs.AppSdk.Globalization;
+using Kazo.Os.AppSdk;
+using Kazo.Os.AppSdk.Globalization;
 using Kazo.Chess.Clock;
 using Kazo.Chess.Engine;
 using Kazo.Chess.Game;

@@ -1,7 +1,7 @@
-using HackerOs.App.Abstractions;
-using HackerOs.AppSdk.Blazor;
-using HackerOs.AppSdk.Globalization;
-using HackerOs.AppSdk.IO;
+using Kazo.Os.App.Abstractions;
+using Kazo.Os.AppSdk.Blazor;
+using Kazo.Os.AppSdk.Globalization;
+using Kazo.Os.AppSdk.IO;
 using Kazo.Chess.Components;
 using Kazo.Chess.Engine;
 using Kazo.Chess.Game;
@@ -164,17 +164,17 @@ public sealed partial class ChessWindow : IAsyncDisposable
         }
 
         string path = target.Path.Value;
-        string name = HackPath.GetFileName(path);
+        string name = KazoPath.GetFileName(path);
         try
         {
             string pgn = await _session.ExportPgnAsync(Today, AppContext.UserLoginName, AppContext.CancellationToken);
-            await HackFile.WriteAllTextAsync(path, pgn, AppContext.CancellationToken);
+            await KazoFile.WriteAllTextAsync(path, pgn, AppContext.CancellationToken);
             RememberFolder(path);
             await SetDocumentAsync(name);
             _error = null;
             _notice = L["Saved", name];
         }
-        catch (Exception exception) when (exception is HackIOException or HackUnauthorizedAccessException or JSException)
+        catch (Exception exception) when (exception is KazoIOException or KazoUnauthorizedAccessException or JSException)
         {
             _error = L["FileFailed", name, exception.Message];
         }
@@ -182,16 +182,16 @@ public sealed partial class ChessWindow : IAsyncDisposable
 
     // The next dialog opens where the last game was read or written (never on an empty path).
     private void RememberFolder(string path) =>
-        _documentDirectory = HackPath.GetDirectoryName(path) is { Length: > 0 } folder ? folder : _documentDirectory;
+        _documentDirectory = KazoPath.GetDirectoryName(path) is { Length: > 0 } folder ? folder : _documentDirectory;
 
     // Reads a .pgn file and opens its game; a file that does not read, or is not a game, leaves the
     // current game as it was and says why.
     private async Task<bool> LoadFileAsync(string path)
     {
-        string name = HackPath.GetFileName(path);
+        string name = KazoPath.GetFileName(path);
         try
         {
-            string pgn = await HackFile.ReadAllTextAsync(path, AppContext.CancellationToken);
+            string pgn = await KazoFile.ReadAllTextAsync(path, AppContext.CancellationToken);
             await _session.LoadAsync(pgn, AppContext.CancellationToken);
             RememberFolder(path);
             _flipped = false;
@@ -204,7 +204,7 @@ public sealed partial class ChessWindow : IAsyncDisposable
         {
             _error = L["PgnInvalid", name, exception.Message];
         }
-        catch (Exception exception) when (exception is HackIOException or HackUnauthorizedAccessException or JSException)
+        catch (Exception exception) when (exception is KazoIOException or KazoUnauthorizedAccessException or JSException)
         {
             _error = L["FileFailed", name, exception.Message];
         }
@@ -212,7 +212,7 @@ public sealed partial class ChessWindow : IAsyncDisposable
         return false;
     }
 
-    // "game.pgn — Chess" while a saved game is shown, the app's name otherwise (ADR 0117 of HackerOS).
+    // "game.pgn — Chess" while a saved game is shown, the app's name otherwise (ADR 0117 of Kazo OS).
     private async Task SetDocumentAsync(string? name)
     {
         _documentName = name;

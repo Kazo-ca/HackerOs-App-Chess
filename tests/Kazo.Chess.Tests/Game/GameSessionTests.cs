@@ -561,7 +561,7 @@ public sealed class GameSessionTests
         string pgn = await session.ExportPgnAsync(new DateOnly(2026, 10, 31), "neo");
 
         Assert.Equal("[Result \"*\"]", pgn);
-        Assert.Equal(new PgnTags("Casual game", "HackerOS", "2026.10.31", "neo", "Stockfish 19 lite (Skill 15)", "*"), rules.Exported);
+        Assert.Equal(new PgnTags("Casual game", "Kazo OS", "2026.10.31", "neo", "Stockfish 19 lite (Skill 15)", "*"), rules.Exported);
     }
 
     [Fact]

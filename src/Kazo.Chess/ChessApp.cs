@@ -1,9 +1,9 @@
-using HackerOs.App.Abstractions;
+using Kazo.Os.App.Abstractions;
 
 namespace Kazo.Chess;
 
 /// <summary>
-/// The app's manifest. The build generates <c>manifest.json</c> from this class (HackerOs.App.Build);
+/// The app's manifest. The build generates <c>manifest.json</c> from this class (Kazo.Os.App.Build);
 /// it is never instantiated at run time.
 /// </summary>
 [AppManifest]
@@ -34,8 +34,8 @@ public sealed class ChessApp : AppDefinition
     public override string Category => "entertainment";
 
     /// <inheritdoc />
-    /// <remarks>The tag that publishes to the Hack Store must be v + this version.</remarks>
-    public override string Version => "1.0.0";
+    /// <remarks>The tag that publishes to the Kazo OS Store must be v + this version.</remarks>
+    public override string Version => "1.1.0";
 
     /// <inheritdoc />
     public override IReadOnlyList<string> Capabilities =>

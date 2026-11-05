@@ -1,27 +1,27 @@
 > [English version](../en/plan.md)
 
-# Plan : l'app Chess pour HackerOS
+# Plan : l'app Chess pour Kazo OS
 
-Plan **validé le 2026-10-29** par Benoit (fil « Planifier le Hack Store et
+Plan **validé le 2026-10-29** par Benoit (fil « Planifier le Kazo OS Store et
 l'app Chess »). Ce document fixe la cible et l'ordre des choses à faire ;
 l'avancement est en fin de page et le code est décrit dans
 [`architecture.md`](architecture.md).
 
 ## But
 
-Chess est la **première app du Hack Store** : une app tierce, dans son propre
-dépôt, qui teste toute la chaîne de publication de HackerOS (dépôt de l'app →
-PR au catalogue `Kazo-ca/HackerOs-AppMarketPlace` → vérification et
-compilation par la CI du catalogue → installation par le Hack Store).
-Le plan du Store est dans le dépôt HackerOs :
-`doc/fr/wasm/dev/plans/hackeros-store.md` et les ADR 0188 à 0190.
+Chess est la **première app du Kazo OS Store** : une app tierce, dans son propre
+dépôt, qui teste toute la chaîne de publication de Kazo OS (dépôt de l'app →
+PR au catalogue `Kazo-ca/Os-AppMarketPlace` → vérification et
+compilation par la CI du catalogue → installation par le Kazo OS Store).
+Le plan du Store est dans le dépôt Kazo OS :
+`doc/fr/wasm/dev/plans/kazoos-store.md` et les ADR 0188 à 0190.
 
 ## Décisions
 
 | # | Sujet | Décision |
 | --- | --- | --- |
-| Q12 | Technologie | Garder **chess.js** (règles, licence BSD-2-Clause), servi comme ressource `wwwroot/` de l'app. Prérequis : le chantier HackerOS qui sert les ressources des apps installées. |
-| Q13 | Départ du dépôt | Généré avec le modèle `hackeros-solution` (ADR 0176 de HackerOS) une fois ce modèle codé. |
+| Q12 | Technologie | Garder **chess.js** (règles, licence BSD-2-Clause), servi comme ressource `wwwroot/` de l'app. Prérequis : le chantier Kazo OS qui sert les ressources des apps installées. |
+| Q13 | Départ du dépôt | Généré avec le modèle `kazoos-solution` (ADR 0176 de Kazo OS) une fois ce modèle codé. |
 | Q14 | Modes de jeu | Deux joueurs sur le même écran, et contre l'ordinateur. Moteur : **[stockfish.js](https://github.com/nmrugg/stockfish.js)**. Stockfish a déjà un réglage de force, donc pas de moteur maison. |
 | Q30 | Licence | Le dépôt passe en **GPL-3.0** (obligatoire pour embarquer stockfish.js). |
 | Q31 | Version du moteur | Version « lite » mono-thread (environ 7 Mo, pas d'isolation cross-origin), dans un Web Worker. **5 niveaux** nommés (Débutant, Facile, Moyen, Difficile, Expert) mappés sur `Skill Level` (0, 5, 10, 15, 20). |
@@ -32,11 +32,11 @@ Le plan du Store est dans le dépôt HackerOs :
 
 ## Choses à faire, dans l'ordre
 
-1. Attendre les prérequis HackerOS : modèle `hackeros-solution`, service des
-   ressources `wwwroot/` des apps installées, catalogue et Hack Store
+1. Attendre les prérequis Kazo OS : modèle `kazoos-solution`, service des
+   ressources `wwwroot/` des apps installées, catalogue et Kazo OS Store
    (plan du Store, chantiers 1 à 5).
-2. Générer la solution avec `dotnet new hackeros-solution` (sous-module
-   `external/HackerOs` sur le tag de la version visée).
+2. Générer la solution avec `dotnet new kazoos-solution` (sous-module
+   `external/KazoOs` sur le tag de la version visée).
 3. Plateau SVG, saisie des coups (souris, toucher, clavier), règles par
    chess.js via JS interop.
 4. Partie contre l'ordinateur : stockfish.js lite dans un Web Worker, 5
@@ -64,9 +64,9 @@ Le plan du Store est dans le dépôt HackerOs :
 
 ## Avancement
 
-Le 2026-10-30, Benoit a choisi de commencer avant les prérequis HackerOS : la
-solution part des paquets NuGet 2.1.0 (`hackeros-window` et `hackeros-host`)
-et passera au modèle `hackeros-solution` quand il existera. Le travail se fait
+Le 2026-10-30, Benoit a choisi de commencer avant les prérequis Kazo OS : la
+solution part des paquets NuGet 2.1.0 (`kazoos-window` et `kazoos-host`)
+et passera au modèle `kazoos-solution` quand il existera. Le travail se fait
 dans la série `chess/base` (une branche et une PR par chantier).
 
 | Chantier | Branche | État |
@@ -75,7 +75,8 @@ dans la série `chess/base` (une branche et une PR par chantier).
 | 2. Contre l'ordinateur : stockfish.js lite, 5 niveaux, choix de la couleur | `chess/2-engine` | Fait (Stockfish 19 lite, 1,8 Mo) |
 | 3. Historique, annuler, retourner le plateau, pendule | `chess/3-history-and-clock` | Fait (Stockfish reçoit aussi l'historique) |
 | 4. Fichiers `.pgn`, association de fichiers | `chess/4-pgn-files` | Fait |
-| 5. Passage au modèle `hackeros-solution`, dossier `store/` | `chess/5-solution-template` | Fait sur HackerOS 2.2.0 |
-| 6. App installée : workflows du modèle, vérification par `hackpkg` | `chess/6-installed-app` | Fait (Chess installé vérifié sur HackerOS `main`, ADR 0221) |
-| 7. HackerOS 2.2.1 (ressources, CSS et traductions d'une app installée), tag `v1.0.0` | `chess/7-hackeros-2.2.1` | Fait (tag `v1.0.0`, paquet publié sur la branche `hackeros-packages`) |
-| 8. Publication au Hack Store : PR au catalogue, vérification, signature, installation | Kazo-ca/HackerOs-AppMarketPlace#8 | Fait (Chess 1.0.0 dans le catalogue officiel, signé ; installé depuis le Hack Store et par `hackpkg install ca.kazo.chess` sur HackerOS 2.2.2, signature vérifiée) |
+| 5. Passage au modèle `kazoos-solution`, dossier `store/` | `chess/5-solution-template` | Fait sur Kazo OS 2.2.0 |
+| 6. App installée : workflows du modèle, vérification par `kazopkg` | `chess/6-installed-app` | Fait (Chess installé vérifié sur Kazo OS `main`, ADR 0221) |
+| 7. Kazo OS 2.2.1 (ressources, CSS et traductions d'une app installée), tag `v1.0.0` | `chess/7-hackeros-2.2.1` | Fait (tag `v1.0.0`, paquet publié sur la branche `kazoos-packages`) |
+| 8. Publication au Kazo OS Store : PR au catalogue, vérification, signature, installation | Kazo-ca/Os-AppMarketPlace#8 | Fait (Chess 1.0.0 dans le catalogue officiel, signé ; installé depuis le Kazo OS Store et par `kazopkg install ca.kazo.chess` sur Kazo OS 2.2.2, signature vérifiée) |
+| 9. Kazo OS 3.0.0 : le renommage de HackerOS (sous-module `external/KazoOs`, paquets `Kazo.Os.*`, branche `kazoos-packages`), version `1.1.0` | `rename/kazo-os-3` | Fait, tag `v1.1.0` à créer après la fusion |
