@@ -1,5 +1,5 @@
-using HackerOs.AppSdk;
-using HackerOs.AppSdk.Globalization;
+using Kazo.Os.AppSdk;
+using Kazo.Os.AppSdk.Globalization;
 using Kazo.Chess.Interaction;
 using Kazo.Chess.Model;
 using Microsoft.AspNetCore.Components;
@@ -302,11 +302,11 @@ public sealed partial class ChessBoard : IAsyncDisposable
         }
     }
 
-    // A script callback runs outside the app's ambient scope (ADR 0043 of HackerOS): enter it first,
+    // A script callback runs outside the app's ambient scope (ADR 0043 of Kazo OS): enter it first,
     // so the work is the app's, then render like an ordinary UI event would.
     private async Task RunFromScriptAsync(Func<Task> work)
     {
-        using IDisposable? scope = AppContext is { } context ? HackExecutionContext.Enter(context) : null;
+        using IDisposable? scope = AppContext is { } context ? KazoExecutionContext.Enter(context) : null;
         try
         {
             await work();

@@ -1,7 +1,7 @@
 // Test harness of the end-to-end runs: starts the Chess host (src/Kazo.Chess.Os, built beforehand
 // with `dotnet build -c Release`, or the configuration named by CHESS_CONFIGURATION) on a free port,
 // or uses CHESS_BASE_URL when it points to one already running, and opens the Chess app in a fresh
-// HackerOS profile.
+// Kazo OS profile.
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 import { fileURLToPath } from 'node:url';
@@ -55,7 +55,7 @@ export async function startHost() {
 }
 
 /**
- * Boots HackerOS in a fresh browser context (first boot: the administrator is created) and opens
+ * Boots Kazo OS in a fresh browser context (first boot: the administrator is created) and opens
  * the Chess app: from the Applications menu on the desktop, from "All applications" on a phone.
  * @param {import('playwright').Page} page A page of a new context.
  * @param {string} baseUrl The host's address.

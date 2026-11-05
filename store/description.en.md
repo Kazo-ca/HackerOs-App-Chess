@@ -1,6 +1,6 @@
 # Chess
 
-A chessboard in the colours of your HackerOS theme, on the desktop and on a phone.
+A chessboard in the colours of your Kazo OS theme, on the desktop and on a phone.
 
 ## Play
 

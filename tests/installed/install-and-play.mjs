@@ -1,15 +1,15 @@
-// Chess as the Hack Store installs it: `npm run test:installed -- <HackerOS wwwroot> <packages>`.
+// Chess as the Kazo OS Store installs it: `npm run test:installed -- <Kazo OS wwwroot> <packages>`.
 //
-// <HackerOS wwwroot>: a published HackerOS (for example the output of
-//   external/HackerOs/wasm2/HackerOs/build/publish-trimmed.sh, artifacts/publish-trimmed/publish/wwwroot),
+// <Kazo OS wwwroot>: a published Kazo OS (for example the output of
+//   external/KazoOs/wasm2/KazoOs/build/publish-trimmed.sh, artifacts/publish-trimmed/publish/wwwroot),
 //   the trimmed OS users run.
-// <packages>: the folder `dotnet build src/Kazo.Chess -c Release -t:HackerOsPack` writes
-//   (default src/Kazo.Chess/bin/hackeros-packages), the content of the hackeros-packages branch.
+// <packages>: the folder `dotnet build src/Kazo.Chess -c Release -t:KazoOsPack` writes
+//   (default src/Kazo.Chess/bin/kazoos-packages), the content of the kazoos-packages branch.
 //
 // The run serves the OS, answers the GitHub addresses of this repository's packages from <packages>,
-// installs Chess with `sudo hackpkg install` (its API check against the trimmed runtime included),
+// installs Chess with `sudo kazopkg install` (its API check against the trimmed runtime included),
 // opens it, and plays against Stockfish: the board's styles, scripts, piece images and the engine's
-// Web Worker and .wasm all come from the installed package. Not part of CI: it needs a HackerOS
+// Web Worker and .wasm all come from the installed package. Not part of CI: it needs a Kazo OS
 // publish (about ten minutes to build).
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
@@ -18,11 +18,11 @@ import { chromium } from 'playwright';
 
 const [wwwroot, packages] = process.argv.slice(2).map(argument => argument && path.resolve(argument));
 if (!wwwroot || !packages) {
-    console.error('usage: npm run test:installed -- <HackerOS wwwroot> <packages folder>');
+    console.error('usage: npm run test:installed -- <Kazo OS wwwroot> <packages folder>');
     process.exit(2);
 }
 
-const REPOSITORY = 'Kazo-ca/HackerOs-App-Chess';
+const REPOSITORY = 'Kazo-ca/Os-App-Chess';
 const LOGIN = 'neo';
 const PASSWORD = 'matrix123';
 const STEP_MS = 120_000;
@@ -69,9 +69,9 @@ const errors = [];
 let page;
 try {
     const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
-    // raw.githubusercontent.com, as hackpkg reads it (ADR 0182 of HackerOS), answered locally.
-    await context.route(new RegExp(`^https://raw\\.githubusercontent\\.com/${REPOSITORY}/hackeros-packages/`), async route => {
-        const relative = decodeURIComponent(new URL(route.request().url()).pathname).split('/hackeros-packages/')[1];
+    // raw.githubusercontent.com, as kazopkg reads it (ADR 0182 of Kazo OS), answered locally.
+    await context.route(new RegExp(`^https://raw\\.githubusercontent\\.com/${REPOSITORY}/kazoos-packages/`), async route => {
+        const relative = decodeURIComponent(new URL(route.request().url()).pathname).split('/kazoos-packages/')[1];
         const file = path.join(packages, relative);
         const headers = { 'Access-Control-Allow-Origin': '*' };
         try {
@@ -105,7 +105,7 @@ try {
     const rows = page.locator('[data-terminal-panel] .xterm-rows').first();
     await waitForText(rows, text => text.includes('$'), 'the shell prompt');
     await page.locator('[data-terminal-panel] .xterm-screen').first().click();
-    await page.keyboard.type(`sudo hackpkg install ${REPOSITORY}`);
+    await page.keyboard.type(`sudo kazopkg install ${REPOSITORY}`);
     await page.keyboard.press('Enter');
     const prompt = page.locator('.credential-prompt-dialog, .aaa-window').first();
     await prompt.waitFor({ state: 'visible', timeout: STEP_MS });
@@ -114,13 +114,13 @@ try {
     await prompt.locator('input[type=password]').fill(PASSWORD);
     await prompt.locator('input[type=password]').press('Enter');
     const output = await waitForText(rows, text => text.includes('available now') || /does not have|refused|error/i.test(text), 'the end of the installation');
-    if (!output.includes('available now')) throw new Error(`hackpkg did not install Chess:\n${output}`);
-    log('hackpkg installed Chess.');
+    if (!output.includes('available now')) throw new Error(`kazopkg did not install Chess:\n${output}`);
+    log('kazopkg installed Chess.');
 
     // Open it: pieces drawn (chess.js, images, board script) and its scoped CSS linked by the OS.
     await openApp('Chess');
     await page.locator('.chess-board .piece').first().waitFor({ timeout: STEP_MS });
-    const linked = await page.evaluate(() => [...document.querySelectorAll('link[data-hackeros-installed-app]')].map(link => link.getAttribute('href')));
+    const linked = await page.evaluate(() => [...document.querySelectorAll('link[data-kazoos-installed-app]')].map(link => link.getAttribute('href')));
     if (!linked.some(href => href.endsWith('_content/Kazo.Chess/Kazo.Chess.bundle.scp.css'))) {
         throw new Error(`the scoped CSS of Chess is not linked: ${JSON.stringify(linked)}`);
     }

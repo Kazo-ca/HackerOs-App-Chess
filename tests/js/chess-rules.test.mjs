@@ -88,9 +88,9 @@ test('a game saves as PGN with the seven tags and its moves', () => {
     const game = createGame();
     game.move('e2', 'e4');
     game.move('e7', 'e5');
-    const pgn = game.pgn(JSON.stringify({ Event: 'Casual game', Site: 'HackerOS', Date: '2026.10.31', White: 'White', Black: 'Black', Result: '*' }));
+    const pgn = game.pgn(JSON.stringify({ Event: 'Casual game', Site: 'Kazo OS', Date: '2026.10.31', White: 'White', Black: 'Black', Result: '*' }));
 
-    assert.match(pgn, /^\[Event "Casual game"\]\n\[Site "HackerOS"\]\n\[Date "2026.10.31"\]\n\[Round "\?"\]/);
+    assert.match(pgn, /^\[Event "Casual game"\]\n\[Site "Kazo OS"\]\n\[Date "2026.10.31"\]\n\[Round "\?"\]/);
     assert.match(pgn, /\n\n1\. e4 e5 \*$/);
 });
 

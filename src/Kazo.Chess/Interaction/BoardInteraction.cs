@@ -43,7 +43,7 @@ public sealed record BoardInteraction
     /// <param name="snapshot">The current position.</param>
     public IReadOnlySet<Square> Targets(GameSnapshot snapshot) =>
         // new HashSet(…) rather than ToHashSet(): the trimmed OS has no Enumerable.ToHashSet, and
-        // hackpkg refuses an app that calls it (apps.package.missing-api).
+        // kazopkg refuses an app that calls it (apps.package.missing-api).
         Selected is { } from ? new HashSet<Square>(snapshot.MovesFrom(from).Select(move => move.To)) : new HashSet<Square>();
 
     /// <summary>Handles a press on a square (pointer down, or the first half of a keyboard activation).</summary>

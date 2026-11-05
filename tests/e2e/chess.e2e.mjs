@@ -1,4 +1,4 @@
-// End-to-end runs of the Chess app inside the HackerOS host: `npm run test:e2e` after
+// End-to-end runs of the Chess app inside the Kazo OS host: `npm run test:e2e` after
 // `dotnet build Kazo.Chess.slnx`. Each test boots a fresh browser profile.
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';

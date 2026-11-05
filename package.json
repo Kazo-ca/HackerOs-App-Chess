@@ -1,7 +1,7 @@
 {
   "name": "kazo-chess-tests",
   "private": true,
-  "description": "JavaScript tests of the Chess app: the rules module (node) and end-to-end runs in the HackerOS host (Playwright).",
+  "description": "JavaScript tests of the Chess app: the rules module (node) and end-to-end runs in the Kazo OS host (Playwright).",
   "license": "GPL-3.0-only",
   "type": "module",
   "scripts": {

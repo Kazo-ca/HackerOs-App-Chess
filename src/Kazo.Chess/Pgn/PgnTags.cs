@@ -9,7 +9,7 @@ namespace Kazo.Chess.Pgn;
 /// most 255 characters), so a login name such as <c>Jo"hn</c> cannot break the file.
 /// </summary>
 /// <param name="Event">What the game was: always <c>Casual game</c>.</param>
-/// <param name="Site">Where it was played: <c>HackerOS</c>.</param>
+/// <param name="Site">Where it was played: <c>Kazo OS</c>.</param>
 /// <param name="Date">The date, as <c>YYYY.MM.DD</c>.</param>
 /// <param name="White">The White player.</param>
 /// <param name="Black">The Black player.</param>

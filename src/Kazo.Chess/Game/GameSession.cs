@@ -266,7 +266,7 @@ public sealed class GameSession : IAsyncDisposable
             string Name(PieceColor side) => setup.Mode == GameMode.TwoPlayers ? "?" : side == setup.ComputerColor ? engine : playerName;
             var tags = new PgnTags(
                 "Casual game",
-                "HackerOS",
+                "Kazo OS",
                 PgnTags.FormatDate(date),
                 Name(PieceColor.White),
                 Name(PieceColor.Black),
