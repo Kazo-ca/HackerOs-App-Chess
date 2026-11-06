@@ -298,7 +298,7 @@ at the root, the target would also run on the tests project, which has none).
 It needs Kazo-ca/Os-AppMarketPlace#7 (submodule fetched, package's
 manifest, reader on Kazo OS 2.2.1). That PR was checked with the real Chess
 package: `validate` and `check-package` pass ("the package matches its folder").
-The catalog signs the package at publication (`HACK_STORE_SIGNING_KEY`), and
+The catalog signs the package at publication (`KAZO_STORE_SIGNING_KEY`), and
 Kazo OS 2.2.2 requires that signature.
 
 ## Building, running and testing
