@@ -28,7 +28,7 @@ Os-App-Chess/
 │  ├─ js/                    # tests des modules JavaScript (node --test)
 │  └─ e2e/                   # parcours dans l'hôte (node --test + Playwright)
 ├─ store/                    # fiche du Kazo OS Store : icône, descriptions, captures, store.json
-├─ .github/workflows/        # ci.yml, publish-to-kazoos-store.yml
+├─ .github/workflows/        # ci.yml, publish-*.yml, tag-release.yml
 └─ package.json              # outils des tests JavaScript
 ```
 
@@ -266,6 +266,14 @@ manifeste) :
   sans le Store. Avec le secret `HACKEROS_APP_SIGNING_KEY`, le paquet est signé ;
   sans lui, il est publié non signé avec un avertissement.
 
+Le tag lui-même est posé sur GitHub par `tag-release.yml` (« Tag a release »,
+lancé à la main depuis l'onglet Actions ou par un agent via l'API GitHub) : il
+pose sur un commit de `main` (la tête par défaut) le tag de la version du
+manifeste, puis lance les deux workflows ci-dessus, car un tag poussé avec le
+jeton du workflow ne les lance pas. Avec `publish` désactivé, il pose seulement
+le tag (pour une version déjà publiée). Il refuse un commit hors de `main` et une
+version dont le tag est déjà sur un autre commit.
+
 **Une app installée n'est pas une app compilée dans l'OS.** Trois différences,
 toutes vérifiées par `npm run test:installed` (plus bas) :
 
@@ -432,5 +440,7 @@ Kazo OS 3.0.0 (`rename/kazo-os-3`) :
 - [x] Profils Release (paquets de nuget.org) et Debug (sources) : tests C#,
   tests JavaScript et parcours E2E ; `KazoOsPack` produit
   `ca.kazo.chess-1.1.0.kazoapp` (27 fichiers).
-- [ ] Tag `v1.1.0` (créé par Benoit après la fusion dans `main`) : publie sur la
-  branche `kazoos-packages` et ouvre la pull request au catalogue.
+- [x] Version `1.1.0` publiée sur la branche `kazoos-packages` et au catalogue
+  (`Kazo-ca/Os-AppMarketPlace` #13), depuis le commit `c64fe542`.
+- [ ] Tag `v1.1.0` sur `c64fe542`, par le workflow `tag-release.yml` avec
+  `publish` désactivé (la version est déjà publiée).
