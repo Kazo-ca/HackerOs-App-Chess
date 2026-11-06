@@ -307,7 +307,7 @@ Elle a besoin de Kazo-ca/Os-AppMarketPlace#7 (sous-module récupéré,
 manifeste du paquet, lecteur sur Kazo OS 2.2.1). Cette PR a été vérifiée avec le
 vrai paquet Chess : `validate` et `check-package` passent (« the package matches
 its folder »). Le catalogue signe le paquet à la publication
-(`HACK_STORE_SIGNING_KEY`), et Kazo OS 2.2.2 exige cette signature.
+(`KAZO_STORE_SIGNING_KEY`), et Kazo OS 2.2.2 exige cette signature.
 
 ## Construire, lancer et tester
 
