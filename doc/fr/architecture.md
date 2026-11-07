@@ -261,10 +261,11 @@ manifeste) :
   compare au paquet que sa CI construit), et ouvre la pull request vers
   `Kazo-ca/Os-AppMarketPlace` avec le secret `HACK_STORE_TOKEN` (sinon il
   laisse le dossier en artefact).
-- `publish-packages.yml` (ADR 0219 de Kazo OS) pousse le paquet sur la branche
+- `publish-packages.yml` (ADR 0219 §3 de Kazo OS) pousse le paquet sur la branche
   `kazoos-packages` de ce dépôt, pour `kazopkg install Kazo-ca/Os-App-Chess`
-  sans le Store. Avec le secret `HACKEROS_APP_SIGNING_KEY`, le paquet est signé ;
-  sans lui, il est publié non signé avec un avertissement.
+  sans le Store. Le paquet n'est pas signé : les apps sont signées seulement
+  dans `Kazo-ca/Os-AppMarketPlace` (ADR 0233 de Kazo OS), ce dépôt n'a donc
+  aucun secret de signature.
 
 Le tag lui-même est posé sur GitHub par `tag-release.yml` (« Tag a release »,
 lancé à la main depuis l'onglet Actions ou par un agent via l'API GitHub) : il
