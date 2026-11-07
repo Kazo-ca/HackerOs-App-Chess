@@ -256,7 +256,7 @@ Two workflows of the template run on a `v<version>` tag (the manifest's
   repository's `kazoos-packages` branch, for
   `kazopkg install Kazo-ca/Os-App-Chess` without the Store. The package is
   not signed: apps are signed only in `Kazo-ca/Os-AppMarketPlace` (Kazo OS
-  ADR 0233), so this repository has no signing secret.
+  ADR 0219), so this repository has no signing secret.
 
 The tag itself is made on GitHub by `tag-release.yml` ("Tag a release",
 started by hand from the Actions tab or by an agent through the GitHub API): it
