@@ -264,7 +264,7 @@ manifeste) :
 - `publish-packages.yml` (ADR 0219 §3 de Kazo OS) pousse le paquet sur la branche
   `kazoos-packages` de ce dépôt, pour `kazopkg install Kazo-ca/Os-App-Chess`
   sans le Store. Le paquet n'est pas signé : les apps sont signées seulement
-  dans `Kazo-ca/Os-AppMarketPlace` (ADR 0233 de Kazo OS), ce dépôt n'a donc
+  dans `Kazo-ca/Os-AppMarketPlace` (ADR 0219 de Kazo OS), ce dépôt n'a donc
   aucun secret de signature.
 
 Le tag lui-même est posé sur GitHub par `tag-release.yml` (« Tag a release »,
